@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- Interface in English and German, following Obsidian's language setting. More languages: add a file in `src/i18n/`.
+- Moving attachments reports attachments that are not on this device yet (e.g. still syncing) instead of skipping them silently.
+
 ## 0.2.0
 
 - Move a note's local attachments to your storage (command and note context menu): uploads, shrinks images, rewrites embeds (sizes like `|300` are kept), trashes local files no other note uses.

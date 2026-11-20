@@ -68,6 +68,10 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 - **Keep attachments of the current note on this device** downloads all of a note's files for offline use.
 - Links look like `![photo.jpg](keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg)`. You can resize images as usual: `![photo.jpg|300](…)`.
 
+## Languages
+
+Keyhole follows Obsidian's interface language. Available: English, German. Translations are welcome: copy `src/i18n/en.ts` to a new file named after the language code and register it in `src/i18n/index.ts`.
+
 ## Privacy and network use
 
 Keyhole connects **only** to the storage you configure, to upload and download your files. It sends no telemetry and contacts no other service. You need an account with an S3-compatible provider (often paid beyond a free tier), or your own server.

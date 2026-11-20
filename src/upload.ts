@@ -8,6 +8,7 @@ import type { KeyholeSettings } from "./settings";
 import type { StorageBackend } from "./storage/backend";
 import { messageOf } from "./render";
 import { optimizeImage } from "./image";
+import { t } from "./i18n";
 
 export interface UploadContext {
 	app: App;
@@ -69,7 +70,7 @@ export class Uploader {
 			cleanup();
 			const settings = this.ctx.settings();
 			const tooLarge = files.filter((f) => f.size > settings.maxUploadMB * 1024 * 1024);
-			if (tooLarge.length) new Notice(`Keyhole: skipped ${tooLarge.length} file(s) over ${settings.maxUploadMB} MB.`);
+			if (tooLarge.length) new Notice(t("notice.skippedTooLarge", { count: tooLarge.length, max: settings.maxUploadMB }));
 			const ok = files.filter((f) => !tooLarge.includes(f) && f.size > 0);
 			if (ok.length) void this.upload(ok, editor, note);
 		});
@@ -90,15 +91,15 @@ export class Uploader {
 		editor.replaceSelection(`${lead}${jobs.map((j) => j.placeholder).join("\n")}\n`);
 
 		// A few at a time: on phones every upload holds the whole file in memory.
-		const progress = jobs.length > 1 ? new Notice(`Keyhole: uploading ${jobs.length} files…`, 0) : null;
+		const progress = jobs.length > 1 ? new Notice(t("notice.uploadingMany", { count: jobs.length }), 0) : null;
 		let finished = 0;
 		await runLimited(jobs, UPLOAD_CONCURRENCY, async (job) => {
 			await this.uploadOne(job.file, job.name, job.placeholder, note);
 			finished++;
-			progress?.setMessage(`Keyhole: uploaded ${finished} of ${jobs.length} files…`);
+			progress?.setMessage(t("notice.uploadedProgress", { done: finished, count: jobs.length }));
 		});
 		if (progress) {
-			progress.setMessage(`Keyhole: ${jobs.length} files done.`);
+			progress.setMessage(t("notice.uploadedDone", { count: jobs.length }));
 			window.setTimeout(() => progress.hide(), 3000);
 		}
 	}
@@ -174,13 +175,13 @@ export class Uploader {
 				const local = await app.vault.createBinary(path, data);
 				const link = app.fileManager.generateMarkdownLink(local, note.path);
 				await this.replacePlaceholder(note, placeholder, link.startsWith("!") ? link : `!${link}`);
-				new Notice(`Keyhole: upload failed (${reason}). Saved "${name}" as a local attachment instead.`, 8000);
+				new Notice(t("notice.uploadFailedLocal", { reason, name }), 8000);
 				return;
 			} catch (localErr) {
-				new Notice(`Keyhole: upload failed (${reason}) and saving locally failed too (${messageOf(localErr)}).`, 0);
+				new Notice(t("notice.uploadFailedLocalFailed", { reason, error: messageOf(localErr) }), 0);
 			}
 		} else {
-			new Notice(`Keyhole: upload of "${name}" failed: ${reason}`, 8000);
+			new Notice(t("notice.uploadFailed", { name, reason }), 8000);
 		}
 		await this.replacePlaceholder(note, placeholder, "");
 	}
@@ -212,7 +213,7 @@ export class Uploader {
 		}
 		if (!replaced && replacement) {
 			await navigator.clipboard.writeText(replacement).catch(() => undefined);
-			new Notice("Keyhole: upload finished, but its placeholder was gone. The link is on your clipboard.", 8000);
+			new Notice(t("notice.placeholderGone"), 8000);
 		}
 	}
 }

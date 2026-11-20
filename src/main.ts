@@ -11,6 +11,7 @@ import { S3Backend } from "./storage/s3";
 import { HttpBackend } from "./storage/webdav";
 import { Uploader } from "./upload";
 import { Migrator } from "./migrate";
+import { initLanguage, t } from "./i18n";
 
 const MB = 1024 * 1024;
 const LINK_RE = /keyhole:\/\/[a-z0-9-]+\/[^\s)\]"'<>]+/gi;
@@ -24,6 +25,7 @@ export default class KeyholePlugin extends Plugin {
 	private lastErrorNotice = 0;
 
 	async onload(): Promise<void> {
+		initLanguage();
 		await this.loadSettings();
 
 		this.cache = new FileCache(`keyhole-cache/${this.app.vault.getName()}`);
@@ -53,7 +55,7 @@ export default class KeyholePlugin extends Plugin {
 
 		this.addCommand({
 			id: "move-note-attachments",
-			name: "Move local attachments of the current note to your storage",
+			name: t("command.moveNote"),
 			icon: "cloud-upload",
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile();
@@ -68,7 +70,7 @@ export default class KeyholePlugin extends Plugin {
 				if (!(file instanceof TFile) || file.extension !== "md" || !migrator.hasLocalAttachments(file)) return;
 				menu.addItem((item) =>
 					item
-						.setTitle("Move attachments to Keyhole")
+						.setTitle(t("menu.moveNote"))
 						.setIcon("cloud-upload")
 						// Next to "Rename" and "Move file to…", not at the very bottom.
 						.setSection("action")
@@ -97,7 +99,7 @@ export default class KeyholePlugin extends Plugin {
 
 		this.addCommand({
 			id: "upload-files",
-			name: "Upload files",
+			name: t("command.upload"),
 			icon: "upload-cloud",
 			editorCheckCallback: (checking, editor, ctx) => {
 				if (!ctx.file) return false;
@@ -107,10 +109,10 @@ export default class KeyholePlugin extends Plugin {
 		});
 
 		// One tap to pick several files at once, also on phones (add the command to the mobile toolbar too).
-		this.addRibbonIcon("upload-cloud", "Upload files to Keyhole", () => {
+		this.addRibbonIcon("upload-cloud", t("menu.upload"), () => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (!view?.file) {
-				new Notice("Keyhole: open a note first.");
+				new Notice(t("notice.openNoteFirst"));
 				return;
 			}
 			uploader.pickAndUpload(view.editor, view.file);
@@ -122,7 +124,7 @@ export default class KeyholePlugin extends Plugin {
 				if (!note) return;
 				menu.addItem((item) =>
 					item
-						.setTitle("Upload files to Keyhole")
+						.setTitle(t("menu.upload"))
 						.setIcon("upload-cloud")
 						.onClick(() => uploader.pickAndUpload(editor, note)),
 				);
@@ -131,7 +133,7 @@ export default class KeyholePlugin extends Plugin {
 
 		this.addCommand({
 			id: "make-note-offline",
-			name: "Keep attachments of the current note on this device",
+			name: t("command.makeOffline"),
 			icon: "download-cloud",
 			checkCallback: (checking) => {
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -143,7 +145,7 @@ export default class KeyholePlugin extends Plugin {
 
 		this.addCommand({
 			id: "clear-cache",
-			name: "Clear offline cache on this device",
+			name: t("command.clearCache"),
 			icon: "trash",
 			callback: () => void this.clearCache(),
 		});
@@ -192,21 +194,21 @@ export default class KeyholePlugin extends Plugin {
 				bucket: s.s3Bucket,
 				pathStyle: s.s3PathStyle,
 				accessKeyId: s.s3AccessKeyId,
-				secretAccessKey: this.secret(s.s3SecretKeyRef, "secret access key"),
+				secretAccessKey: this.secret(s.s3SecretKeyRef, t("storage.secretS3")),
 			});
 		}
 		return new HttpBackend({
 			baseUrl: s.httpUrl,
 			auth: s.storageType === "keyhole" ? "bearer" : s.httpAuth,
 			username: s.httpUsername,
-			secret: this.secret(s.httpSecretRef, "token or password"),
+			secret: this.secret(s.httpSecretRef, t("storage.secretHttp")),
 			keyholeServer: s.storageType === "keyhole",
 		});
 	}
 
 	private secret(ref: string, what: string): string {
 		const value = ref ? this.app.secretStorage.getSecret(ref) : null;
-		if (!value) throw new StorageError(`No ${what} on this device yet. Add it in the Keyhole settings.`);
+		if (!value) throw new StorageError(t("storage.noSecret", { what }));
 		return value;
 	}
 
@@ -214,9 +216,9 @@ export default class KeyholePlugin extends Plugin {
 		try {
 			await this.cache.clear();
 			this.resolver.reset();
-			new Notice("Keyhole: offline cache cleared.");
+			new Notice(t("notice.cacheCleared"));
 		} catch (err) {
-			new Notice(`Keyhole: could not clear the cache (${messageOf(err)}).`);
+			new Notice(t("notice.cacheClearFailed", { error: messageOf(err) }));
 		}
 	}
 
@@ -227,10 +229,10 @@ export default class KeyholePlugin extends Plugin {
 			if (ref && ref.alias === this.settings.alias) refs.set(ref.key, ref);
 		}
 		if (!refs.size) {
-			new Notice("Keyhole: this note has no Keyhole attachments.");
+			new Notice(t("notice.noKeyholeAttachments"));
 			return;
 		}
-		const notice = new Notice(`Keyhole: downloading ${refs.size} file(s)…`, 0);
+		const notice = new Notice(t("notice.downloading", { count: refs.size }), 0);
 		let cached = 0;
 		let skipped = 0;
 		let failed = 0;
@@ -244,9 +246,9 @@ export default class KeyholePlugin extends Plugin {
 			}
 		}
 		notice.setMessage(
-			`Keyhole: ${cached} file(s) available offline` +
-				(skipped ? `, ${skipped} larger than the cache limit` : "") +
-				(failed ? `, ${failed} failed` : "") +
+			t("notice.offlineResult", { cached }) +
+				(skipped ? t("notice.offlineTooLarge", { count: skipped }) : "") +
+				(failed ? t("notice.offlineFailed", { count: failed }) : "") +
 				".",
 		);
 		window.setTimeout(() => notice.hide(), 6000);
@@ -269,7 +271,7 @@ export default class KeyholePlugin extends Plugin {
 	/** Puts the upload button right after the paper clip in the mobile toolbar. */
 	addToMobileToolbar(): void {
 		this.coreConfig().set("mobileToolbarCommands", placeAfterAttach(this.toolbarCommands()));
-		new Notice("Keyhole: upload button added to the mobile toolbar, next to the paper clip.");
+		new Notice(t("notice.toolbarAdded"));
 	}
 
 	/** Asks once (per vault, synced) whether to place the upload button in the mobile toolbar. */
@@ -277,9 +279,9 @@ export default class KeyholePlugin extends Plugin {
 		if (this.settings.toolbarPrompted || isPlacedAfterAttach(this.toolbarCommands())) return;
 		new ConfirmModal(
 			this.app,
-			"Add the upload button to the toolbar?",
-			"Keyhole can put its upload button right next to the paper clip in the toolbar above the keyboard. With it you can pick several photos or files at once.",
-			"Add button",
+			t("toolbar.title"),
+			t("toolbar.text"),
+			t("toolbar.add"),
 			() => this.addToMobileToolbar(),
 		).open();
 		this.settings.toolbarPrompted = true;
@@ -291,7 +293,7 @@ export default class KeyholePlugin extends Plugin {
 		const now = Date.now();
 		if (now - this.lastErrorNotice < 5000) return;
 		this.lastErrorNotice = now;
-		new Notice(`Keyhole: ${message}`);
+		new Notice(t("notice.error", { message }));
 	}
 }
 
@@ -310,7 +312,7 @@ class ConfirmModal extends Modal {
 		this.setTitle(this.heading);
 		this.contentEl.createEl("p", { text: this.text });
 		new Setting(this.contentEl)
-			.addButton((b) => b.setButtonText("Not now").onClick(() => this.close()))
+			.addButton((b) => b.setButtonText(t("toolbar.notNow")).onClick(() => this.close()))
 			.addButton((b) =>
 				b
 					.setButtonText(this.confirmText)

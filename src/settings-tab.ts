@@ -1,4 +1,5 @@
 import { Notice, PluginSettingTab, type App, type Setting, type SettingDefinitionItem } from "obsidian";
+import { t } from "./i18n";
 import type KeyholePlugin from "./main";
 
 export class KeyholeSettingTab extends PluginSettingTab {
@@ -23,169 +24,169 @@ export class KeyholeSettingTab extends PluginSettingTab {
 		return [
 			{
 				type: "group",
-				heading: "Storage",
+				heading: t("settings.storage"),
 				items: [
 					{
-						name: "Storage type",
-						desc: "S3-compatible: AWS S3, Cloudflare R2, Backblaze B2, MinIO, Garage. WebDAV: Nextcloud, Synology, rclone. All options keep files private.",
+						name: t("settings.storageType"),
+						desc: t("settings.storageType.desc"),
 						control: {
 							type: "dropdown",
 							key: "storageType",
 							options: {
-								s3: "S3-compatible",
-								keyhole: "Keyhole server",
-								webdav: "WebDAV",
+								s3: t("settings.storageType.s3"),
+								keyhole: t("settings.storageType.keyhole"),
+								webdav: t("settings.storageType.webdav"),
 							},
 						},
 					},
 					{
-						name: "Endpoint",
-						desc: "For example https://<account>.r2.cloudflarestorage.com or https://s3.eu-central-1.amazonaws.com",
+						name: t("settings.endpoint"),
+						desc: t("settings.endpoint.desc"),
 						visible: isS3,
 						control: { type: "text", key: "s3Endpoint", placeholder: "https://" },
 					},
 					{
-						name: "Region",
-						desc: "Use auto for Cloudflare R2.",
+						name: t("settings.region"),
+						desc: t("settings.region.desc"),
 						visible: isS3,
 						control: { type: "text", key: "s3Region", placeholder: "auto" },
 					},
 					{
-						name: "Bucket",
-						desc: "Keep the bucket private. Keyhole never needs public access.",
+						name: t("settings.bucket"),
+						desc: t("settings.bucket.desc"),
 						visible: isS3,
 						control: { type: "text", key: "s3Bucket" },
 					},
 					{
-						name: "Path-style URLs",
-						desc: "Needed for MinIO and most self-hosted servers. Turn off only if your provider requires virtual-hosted URLs.",
+						name: t("settings.pathStyle"),
+						desc: t("settings.pathStyle.desc"),
 						visible: isS3,
 						control: { type: "toggle", key: "s3PathStyle" },
 					},
 					{
-						name: "Access key ID",
+						name: t("settings.accessKeyId"),
 						visible: isS3,
 						control: { type: "text", key: "s3AccessKeyId" },
 					},
 					{
-						name: "Secret access key",
+						name: t("settings.secretAccessKey"),
 						visible: isS3,
 						render: (setting) => this.renderSecret(setting, "s3SecretKeyRef", "keyhole-s3-secret"),
 					},
 					{
-						name: "Server URL",
-						desc: "Base URL that files are stored under, for example https://files.example.com/f/",
+						name: t("settings.serverUrl"),
+						desc: t("settings.serverUrl.desc"),
 						visible: isHttp,
 						control: { type: "text", key: "httpUrl", placeholder: "https://" },
 					},
 					{
-						name: "Authentication",
+						name: t("settings.auth"),
 						visible: () => s.storageType === "webdav",
 						control: {
 							type: "dropdown",
 							key: "httpAuth",
-							options: { bearer: "Token", basic: "Username + password" },
+							options: { bearer: t("settings.auth.bearer"), basic: t("settings.auth.basic") },
 						},
 					},
 					{
-						name: "Username",
+						name: t("settings.username"),
 						visible: () => s.storageType === "webdav" && s.httpAuth === "basic",
 						control: { type: "text", key: "httpUsername" },
 					},
 					{
-						name: "Token or password",
+						name: t("settings.tokenOrPassword"),
 						visible: isHttp,
 						render: (setting) => this.renderSecret(setting, "httpSecretRef", "keyhole-server-secret"),
 					},
 					{
-						name: "Test connection",
-						desc: "Uploads and reads back a small test file.",
+						name: t("settings.test"),
+						desc: t("settings.test.desc"),
 						action: () => void this.testConnection(),
 					},
 				],
 			},
 			{
 				type: "group",
-				heading: "Uploads",
+				heading: t("settings.uploads"),
 				items: [
 					{
-						name: "Upload these files",
-						desc: "Matching files you drop, paste or pick go to your storage; everything else is handled by Obsidian as usual. Media means images, audio, video and PDF.",
+						name: t("settings.scope"),
+						desc: t("settings.scope.desc"),
 						control: {
 							type: "dropdown",
 							key: "uploadScope",
 							options: {
-								all: "All files",
-								media: "Media only",
-								images: "Images only",
+								all: t("settings.scope.all"),
+								media: t("settings.scope.media"),
+								images: t("settings.scope.images"),
 							},
 						},
 					},
 					{
-						name: "Shrink images before upload",
-						desc: "Resizes and re-encodes photos and screenshots on this device (WebP or JPEG). A 9 MB phone screenshot becomes a few hundred KB. Also removes location data. GIF and SVG stay as they are.",
+						name: t("settings.optimize"),
+						desc: t("settings.optimize.desc"),
 						control: { type: "toggle", key: "optimizeImages" },
 					},
 					{
-						name: "Longest image edge (pixels)",
+						name: t("settings.maxEdge"),
 						visible: () => s.optimizeImages,
 						control: { type: "number", key: "imageMaxEdge", min: 640, max: 8192 },
 					},
 					{
-						name: "Image quality (%)",
+						name: t("settings.quality"),
 						visible: () => s.optimizeImages,
 						control: { type: "number", key: "imageQuality", min: 50, max: 100 },
 					},
 					{
-						name: "Upload button in the mobile toolbar",
-						desc: "Puts the upload button right after the attachment (paper clip) button in the toolbar above the keyboard on phones and tablets.",
+						name: t("settings.toolbar"),
+						desc: t("settings.toolbar.desc"),
 						action: () => {
 							this.plugin.addToMobileToolbar();
 						},
 					},
 					{
-						name: "Maximum upload size (MB)",
-						desc: "Larger files are left to Obsidian.",
+						name: t("settings.maxUpload"),
+						desc: t("settings.maxUpload.desc"),
 						control: { type: "number", key: "maxUploadMB", min: 1, max: 2048 },
 					},
 					{
-						name: "Keep a local copy if the upload fails",
-						desc: "When you are offline or the storage is unreachable, the file is saved as a normal attachment instead of being lost.",
+						name: t("settings.fallback"),
+						desc: t("settings.fallback.desc"),
 						control: { type: "toggle", key: "fallbackToLocal" },
 					},
 					{
-						name: "Remove local copies after moving",
-						desc: "When you move a note's local attachments to Keyhole, the local files go to the trash (as set in Obsidian's Files & links settings). Files that other notes still use are always kept.",
+						name: t("settings.trashMoved"),
+						desc: t("settings.trashMoved.desc"),
 						control: { type: "toggle", key: "trashMovedAttachments" },
 					},
 					{
-						name: "Key prefix",
-						desc: "Optional folder in the storage, for example the vault name. Changing it only affects new uploads.",
+						name: t("settings.prefix"),
+						desc: t("settings.prefix.desc"),
 						control: { type: "text", key: "keyPrefix", placeholder: "my-vault/" },
 					},
 					{
-						name: "Storage name in links",
-						desc: "Links look like keyhole://main/… Only change this before your first upload.",
+						name: t("settings.alias"),
+						desc: t("settings.alias.desc"),
 						control: {
 							type: "text",
 							key: "alias",
 							validate: (v) =>
-								/^[a-z0-9][a-z0-9-]{0,31}$/.test(v) ? undefined : "Lowercase letters, digits and dashes only.",
+								/^[a-z0-9][a-z0-9-]{0,31}$/.test(v) ? undefined : t("settings.alias.invalid"),
 						},
 					},
 				],
 			},
 			{
 				type: "group",
-				heading: "Display",
+				heading: t("settings.display"),
 				items: [
 					{
-						name: "Limit image height while editing",
-						desc: "In Live Preview, tall images such as phone screenshots take at most part of the screen height, so writing around them stays easy. Wide images keep the full width. Reading view always shows images in full.",
+						name: t("settings.limitHeight"),
+						desc: t("settings.limitHeight.desc"),
 						control: { type: "toggle", key: "limitEditHeight" },
 					},
 					{
-						name: "Maximum height (% of the window)",
+						name: t("settings.maxHeight"),
 						visible: () => s.limitEditHeight,
 						control: { type: "number", key: "editMaxHeightPercent", min: 10, max: 100 },
 					},
@@ -193,32 +194,32 @@ export class KeyholeSettingTab extends PluginSettingTab {
 			},
 			{
 				type: "group",
-				heading: "Offline cache",
+				heading: t("settings.cache"),
 				items: [
 					{
-						name: "Keep viewed files on this device",
-						desc: "Files you have viewed stay available offline. The cache lives on this device only and is not synced.",
+						name: t("settings.cacheEnabled"),
+						desc: t("settings.cacheEnabled.desc"),
 						control: { type: "toggle", key: "cacheEnabled" },
 					},
 					{
-						name: "Cache size (MB)",
-						desc: "Least recently viewed files are removed first.",
+						name: t("settings.cacheSize"),
+						desc: t("settings.cacheSize.desc"),
 						visible: () => s.cacheEnabled,
 						control: { type: "number", key: "cacheMaxMB", min: 10, max: 20000 },
 					},
 					{
-						name: "Largest file to cache (MB)",
+						name: t("settings.cacheMaxFile"),
 						visible: () => s.cacheEnabled,
 						control: { type: "number", key: "cacheMaxFileMB", min: 1, max: 2048 },
 					},
 					{
-						name: "Stream large audio and video",
-						desc: "Play large media directly from the storage with a short-lived signed link instead of downloading it first. Works with S3 and the Keyhole server.",
+						name: t("settings.stream"),
+						desc: t("settings.stream.desc"),
 						control: { type: "toggle", key: "streamLargeMedia" },
 					},
 					{
-						name: "Clear cache",
-						desc: "Removes all cached files from this device.",
+						name: t("settings.clearCache"),
+						desc: t("settings.clearCache.desc"),
 						action: () => void this.plugin.clearCache(),
 					},
 				],
@@ -241,23 +242,23 @@ export class KeyholeSettingTab extends PluginSettingTab {
 		const describe = () =>
 			setting.setDesc(
 				stored()
-					? "Saved on this device. Paste a new value to replace it."
-					: "Paste it here and press Save. It is kept in this device's keychain only, never in your vault, so do this once on every device.",
+					? t("settings.secret.saved")
+					: t("settings.secret.missing"),
 			);
 		describe();
 		let value = "";
 		setting.addText((text) => {
 			text.inputEl.type = "password";
 			text.inputEl.autocomplete = "off";
-			text.setPlaceholder(stored() ? "••••••••" : "Paste here").onChange((v) => (value = v.trim()));
+			text.setPlaceholder(stored() ? "••••••••" : t("settings.secret.placeholder")).onChange((v) => (value = v.trim()));
 		});
 		setting.addButton((button) =>
 			button
-				.setButtonText("Save")
+				.setButtonText(t("settings.secret.save"))
 				.setCta()
 				.onClick(async () => {
 					if (!value) {
-						new Notice("Keyhole: paste the value first.");
+						new Notice(t("notice.pasteFirst"));
 						return;
 					}
 					const id = settings[refKey] || defaultId;
@@ -270,19 +271,19 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						input.placeholder = "••••••••";
 					}
 					describe();
-					new Notice("Keyhole: saved on this device.");
+					new Notice(t("notice.secretSaved"));
 				}),
 		);
 	}
 
 	private async testConnection(): Promise<void> {
-		const notice = new Notice("Keyhole: testing connection…", 0);
+		const notice = new Notice(t("notice.testing"), 0);
 		try {
 			const backend = this.plugin.createBackend();
 			await backend.test();
-			notice.setMessage("Keyhole: connection works.");
+			notice.setMessage(t("notice.testOk"));
 		} catch (err) {
-			notice.setMessage(`Keyhole: ${err instanceof Error ? err.message : "connection failed"}`);
+			notice.setMessage(t("notice.testFailed", { message: err instanceof Error ? err.message : t("error.unknown") }));
 		} finally {
 			window.setTimeout(() => notice.hide(), 6000);
 		}

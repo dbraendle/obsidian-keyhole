@@ -119,3 +119,13 @@ describe("moving local attachments", () => {
 		expect(applyReplacements("xx" + text, [{ start: 2, end: 12, original: "![[a.png]]", replacement: "[A]" }]).text).toBe("xxA [A] B ![[b.png|200]] C");
 	});
 });
+
+describe("unresolved embeds", () => {
+	it("recognises attachment-like link paths", async () => {
+		const { looksLikeAttachment } = await import("../src/migrate-rules");
+		expect(looksLikeAttachment("Screenshot iPhone.png")).toBe(true);
+		expect(looksLikeAttachment("folder/doc.pdf")).toBe(true);
+		expect(looksLikeAttachment("Some note")).toBe(false);
+		expect(looksLikeAttachment("Some note.md")).toBe(false);
+	});
+});

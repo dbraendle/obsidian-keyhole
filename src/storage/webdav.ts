@@ -1,6 +1,7 @@
 import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend } from "./backend";
 import { signKey } from "./keyhole-sign";
 import { isLocalHost } from "./s3";
+import { t } from "../i18n";
 
 export interface HttpStoreConfig {
 	/** Base URL; object keys are appended to it. */
@@ -28,13 +29,13 @@ export class HttpBackend implements StorageBackend {
 		try {
 			url = new URL(config.baseUrl.trim());
 		} catch {
-			throw new StorageError("Server URL is not valid");
+			throw new StorageError(t("storage.httpInvalidUrl"));
 		}
 		if (url.protocol !== "https:" && !isLocalHost(url.hostname)) {
-			throw new StorageError("Server URL must use https://");
+			throw new StorageError(t("storage.httpHttps"));
 		}
-		if (url.username || url.password) throw new StorageError("Do not put credentials into the server URL");
-		if (!config.secret) throw new StorageError("Server credentials are missing");
+		if (url.username || url.password) throw new StorageError(t("storage.httpCredentialsInUrl"));
+		if (!config.secret) throw new StorageError(t("storage.httpNoCredentials"));
 		this.base = url.toString().replace(/\/?$/, "/");
 		this.authHeader =
 			config.auth === "basic"
@@ -56,12 +57,12 @@ export class HttpBackend implements StorageBackend {
 			body: data,
 		};
 		try {
-			await http(request, "Upload failed");
+			await http(request, t("storage.uploadFailed"));
 		} catch (err) {
 			// WebDAV answers 409 when the parent collection does not exist yet.
 			if (!(err instanceof StorageError) || err.status !== 409 || this.config.keyholeServer) throw err;
 			await this.createFolders(key);
-			await http(request, "Upload failed");
+			await http(request, t("storage.uploadFailed"));
 		}
 	}
 
@@ -74,7 +75,7 @@ export class HttpBackend implements StorageBackend {
 			try {
 				await http(
 					{ url: this.base + encodeKeyPath(path), method: "MKCOL", headers: { Authorization: this.authHeader } },
-					"Creating folder failed",
+					t("storage.mkcolFailed"),
 				);
 			} catch (err) {
 				// 405 Method Not Allowed: the collection already exists.
@@ -87,7 +88,7 @@ export class HttpBackend implements StorageBackend {
 	async get(key: string): Promise<ArrayBuffer> {
 		const res = await http(
 			{ url: this.url(key), method: "GET", headers: { Authorization: this.authHeader } },
-			"Download failed",
+			t("storage.downloadFailed"),
 		);
 		return res.arrayBuffer;
 	}
@@ -103,7 +104,7 @@ export class HttpBackend implements StorageBackend {
 		const body = new TextEncoder().encode(`Keyhole connection test ${new Date().toISOString()}\n`);
 		await this.put(TEST_KEY, body.buffer, "text/plain");
 		const back = await this.get(TEST_KEY);
-		if (back.byteLength !== body.byteLength) throw new StorageError("Read-back returned different content");
+		if (back.byteLength !== body.byteLength) throw new StorageError(t("storage.readBackMismatch"));
 	}
 }
 

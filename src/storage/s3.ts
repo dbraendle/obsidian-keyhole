@@ -1,6 +1,7 @@
 import { sha256Hex } from "../crypto";
 import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend } from "./backend";
 import { presignUrl, signHeaders, type Credentials } from "./sigv4";
+import { t } from "../i18n";
 
 export interface S3Config {
 	endpoint: string;
@@ -21,13 +22,13 @@ export class S3Backend implements StorageBackend {
 		try {
 			endpoint = new URL(config.endpoint.trim());
 		} catch {
-			throw new StorageError("S3 endpoint is not a valid URL");
+			throw new StorageError(t("storage.s3InvalidEndpoint"));
 		}
 		if (endpoint.protocol !== "https:" && !isLocalHost(endpoint.hostname)) {
-			throw new StorageError("S3 endpoint must use https://");
+			throw new StorageError(t("storage.s3Https"));
 		}
-		if (!config.bucket.trim()) throw new StorageError("S3 bucket is missing");
-		if (!config.accessKeyId || !config.secretAccessKey) throw new StorageError("S3 credentials are missing");
+		if (!config.bucket.trim()) throw new StorageError(t("storage.s3NoBucket"));
+		if (!config.accessKeyId || !config.secretAccessKey) throw new StorageError(t("storage.s3NoCredentials"));
 		this.base = endpoint;
 		this.creds = {
 			accessKeyId: config.accessKeyId.trim(),
@@ -54,7 +55,7 @@ export class S3Backend implements StorageBackend {
 			headers: { "content-type": contentType },
 			payloadHash: await sha256Hex(data),
 		});
-		await http({ url: url.toString(), method: "PUT", headers, body: data }, "Upload failed");
+		await http({ url: url.toString(), method: "PUT", headers, body: data }, t("storage.uploadFailed"));
 	}
 
 	async get(key: string): Promise<ArrayBuffer> {
@@ -65,7 +66,7 @@ export class S3Backend implements StorageBackend {
 			headers: {},
 			payloadHash: await sha256Hex(""),
 		});
-		const res = await http({ url: url.toString(), method: "GET", headers }, "Download failed");
+		const res = await http({ url: url.toString(), method: "GET", headers }, t("storage.downloadFailed"));
 		return res.arrayBuffer;
 	}
 
@@ -77,7 +78,7 @@ export class S3Backend implements StorageBackend {
 		const body = new TextEncoder().encode(`Keyhole connection test ${new Date().toISOString()}\n`);
 		await this.put(TEST_KEY, body.buffer, "text/plain");
 		const back = await this.get(TEST_KEY);
-		if (back.byteLength !== body.byteLength) throw new StorageError("Read-back returned different content");
+		if (back.byteLength !== body.byteLength) throw new StorageError(t("storage.readBackMismatch"));
 	}
 }
 
