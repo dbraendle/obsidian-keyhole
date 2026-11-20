@@ -128,7 +128,10 @@ export default class KeyholePlugin extends Plugin {
 		this.registerEvent(this.app.workspace.on("editor-drop", (evt, editor, info) => uploader.handleDrop(evt, editor, info)));
 
 		// Reading view renders sections before they are attached; resolve them early.
-		this.registerMarkdownPostProcessor((el) => this.renderer.processTree(el));
+		this.registerMarkdownPostProcessor((el) => {
+			this.renderer.processTree(el);
+			this.hint?.scheduleUpdate();
+		});
 
 		this.app.workspace.onLayoutReady(() => {
 			this.renderer.observe(activeDocument);
