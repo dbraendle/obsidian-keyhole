@@ -136,7 +136,11 @@ export class Renderer {
 		el.dataset.keyholeSrc = src;
 		el.setAttr("title", fileName(ref));
 		img.insertAdjacentElement("afterend", el);
-		img.parentElement?.addClass("keyhole-parent");
+		// Obsidian wraps embeds in shrink-to-fit containers (.image-wrapper inside .image-embed).
+		// Make both full width, or a PDF sizes itself by its pixel width (too wide on iOS).
+		const wrapper = img.parentElement;
+		wrapper?.addClass("keyhole-parent");
+		if (wrapper?.parentElement?.matches(".image-embed, .internal-embed")) wrapper.parentElement.addClass("keyhole-parent");
 		return el;
 	}
 
@@ -235,10 +239,12 @@ export class Renderer {
 		const download = header.createEl("button", { text: t("render.download") });
 		download.addEventListener("click", () => void this.download(ref, download));
 		const pages = el.createDiv({ cls: "keyhole-pdf-pages" });
+		const loading = pages.createDiv({ cls: "keyhole-pdf-loading", text: t("render.loading") });
 		try {
 			const [pdfjs, blob] = await Promise.all([loadPdfJs() as Promise<PdfJs>, this.resolver.blob(ref)]);
 			const doc = await pdfjs.getDocument({ data: await blob.arrayBuffer() }).promise;
 			pageCount.setText(t("render.pages", { count: doc.numPages }));
+			loading.remove();
 			// Placeholders get the first page's proportions, so nothing jumps while scrolling.
 			const first = (await doc.getPage(1)).getViewport({ scale: 1 });
 			const ratio = `${first.width} / ${first.height}`;

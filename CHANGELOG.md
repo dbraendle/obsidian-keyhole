@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+- PDFs and other embeds always fit the note width (on iOS a PDF could grow to its pixel width and scroll sideways).
+- File viewer shows "Loading…" right away and hides PDFs of the note behind it while open (iOS drew them through the window).
+
 ## 0.4.1
 
 - Hint bar sits in the scrolling note content below the title (it hid under the floating header on phones and did not scroll).

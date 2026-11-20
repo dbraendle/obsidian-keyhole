@@ -224,6 +224,8 @@ class FileModal extends Modal {
 
 	onOpen(): void {
 		this.modalEl.addClass("keyhole-file-modal");
+		// iOS draws canvases of PDFs in the note through the modal; hide them while it is open.
+		activeDocument.body.addClass("keyhole-modal-open");
 		this.setTitle(displayName(this.ref));
 		this.renderer.renderStandalone(this.contentEl.createDiv({ cls: "keyhole-file-modal-body" }), this.ref);
 		const buttons = new Setting(this.contentEl);
@@ -246,6 +248,7 @@ class FileModal extends Modal {
 	}
 
 	onClose(): void {
+		activeDocument.body.removeClass("keyhole-modal-open");
 		this.contentEl.empty();
 	}
 }

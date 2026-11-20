@@ -18,14 +18,24 @@ img.keyhole-loading {
 	}
 }
 
-/* Live Preview wraps embeds in an inline-flex wrapper, which collapses audio and cards. */
-.image-wrapper.keyhole-parent,
-.image-embed.keyhole-parent {
-	display: block;
+/*
+ * Obsidian wraps embeds in shrink-to-fit containers (inline-flex), which collapse
+ * audio and cards and let PDFs grow to their pixel width. Force them to full width.
+ */
+.keyhole-parent,
+.image-embed:has(> .image-wrapper > .keyhole-embed),
+.image-wrapper:has(> .keyhole-embed) {
+	display: block !important;
+	width: 100% !important;
+	max-width: 100%;
+	min-width: 0;
 }
 
 .keyhole-embed {
+	box-sizing: border-box;
+	width: 100%;
 	max-width: 100%;
+	min-width: 0;
 	margin: var(--size-4-1) 0;
 }
 
@@ -82,12 +92,15 @@ img.keyhole-loading {
 .keyhole-pdf-pages {
 	max-height: 70vh;
 	overflow-y: auto;
+	overflow-x: hidden;
 	background: var(--background-secondary-alt);
 }
 
 .keyhole-pdf-page {
 	display: block;
 	width: 100%;
+	max-width: 100%;
+	height: auto;
 	aspect-ratio: var(--keyhole-page-ratio, 1 / 1.414);
 	margin-bottom: var(--size-4-2);
 	background: white;
@@ -177,6 +190,28 @@ body.keyhole-limit-edit-height .markdown-source-view.is-live-preview img.keyhole
 /* File viewer */
 .keyhole-file-modal {
 	width: min(900px, 95vw);
+	min-height: min(70vh, 640px);
+}
+
+.is-mobile .keyhole-file-modal {
+	width: 100vw;
+	height: 100%;
+	max-height: 100%;
+}
+
+/* iOS draws PDF canvases in the note through an open modal: hide them meanwhile. */
+body.keyhole-modal-open .workspace .keyhole-pdf-pages {
+	visibility: hidden;
+}
+
+.keyhole-pdf-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 240px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	animation: keyhole-pulse 1.6s ease-in-out infinite;
 }
 
 .keyhole-file-modal-body {
