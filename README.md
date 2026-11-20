@@ -26,9 +26,19 @@ Keep your attachments on your own private storage. Drop or paste an image, PDF, 
 
 Keep your bucket **private**. Keyhole never needs public access, and it needs no CORS configuration.
 
+## Install
+
+Keyhole is not in the community plugin directory yet. Until it is, install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat):
+
+1. Install **BRAT** from *Settings → Community plugins → Browse* and enable it.
+2. Run the command **BRAT: Add a beta plugin for testing** and enter `dbraendle/obsidian-keyhole`.
+3. BRAT installs Keyhole, keeps it up to date and, if you use Obsidian Sync with community plugins enabled, your other devices get it too.
+
+Manual install: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/dbraendle/obsidian-keyhole/releases/latest) into `<vault>/.obsidian/plugins/keyhole/`.
+
 ## Setup
 
-1. Install and enable Keyhole.
+1. Enable Keyhole under *Settings → Community plugins*.
 2. Open **Settings → Keyhole** and choose your storage.
 3. Enter the endpoint, bucket and access key ID, or your server URL.
 4. Under **Secret access key** (or **Token or password**), create a keychain entry and paste the secret. Do this once on every device: secrets are not synced.
