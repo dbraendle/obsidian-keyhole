@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, type App, type SettingDefinitionItem } from "obsidian";
+import { Notice, PluginSettingTab, type App, type Setting, type SettingDefinitionItem } from "obsidian";
 import type KeyholePlugin from "./main";
 
 export class KeyholeSettingTab extends PluginSettingTab {
@@ -69,9 +69,8 @@ export class KeyholeSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Secret access key",
-						desc: "Stored in this device's keychain, never in your vault. Set it up once on every device.",
 						visible: isS3,
-						control: { type: "secret", key: "s3SecretKeyRef" },
+						render: (setting) => this.renderSecret(setting, "s3SecretKeyRef", "keyhole-s3-secret"),
 					},
 					{
 						name: "Server URL",
@@ -95,9 +94,8 @@ export class KeyholeSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Token or password",
-						desc: "Stored in this device's keychain, never in your vault. Set it up once on every device.",
 						visible: isHttp,
-						control: { type: "secret", key: "httpSecretRef" },
+						render: (setting) => this.renderSecret(setting, "httpSecretRef", "keyhole-server-secret"),
 					},
 					{
 						name: "Test connection",
@@ -183,6 +181,55 @@ export class KeyholeSettingTab extends PluginSettingTab {
 				],
 			},
 		];
+	}
+
+	/**
+	 * A plain "paste and save" field. The value goes straight into this device's
+	 * keychain (app.secretStorage) under an id Keyhole picks itself, so people never
+	 * have to invent a keychain id or go through the generic keychain dialog.
+	 * Only the id is stored in data.json.
+	 */
+	private renderSecret(setting: Setting, refKey: "s3SecretKeyRef" | "httpSecretRef", defaultId: string): void {
+		const settings = this.plugin.settings;
+		const stored = () => {
+			const ref = settings[refKey];
+			return Boolean(ref && this.app.secretStorage.getSecret(ref));
+		};
+		const describe = () =>
+			setting.setDesc(
+				stored()
+					? "Saved on this device. Paste a new value to replace it."
+					: "Paste it here and press Save. It is kept in this device's keychain only, never in your vault, so do this once on every device.",
+			);
+		describe();
+		let value = "";
+		setting.addText((text) => {
+			text.inputEl.type = "password";
+			text.inputEl.autocomplete = "off";
+			text.setPlaceholder(stored() ? "••••••••" : "Paste here").onChange((v) => (value = v.trim()));
+		});
+		setting.addButton((button) =>
+			button
+				.setButtonText("Save")
+				.setCta()
+				.onClick(async () => {
+					if (!value) {
+						new Notice("Keyhole: paste the value first.");
+						return;
+					}
+					const id = settings[refKey] || defaultId;
+					this.app.secretStorage.setSecret(id, value);
+					await this.setControlValue(refKey, id);
+					value = "";
+					const input = setting.controlEl.querySelector("input");
+					if (input) {
+						input.value = "";
+						input.placeholder = "••••••••";
+					}
+					describe();
+					new Notice("Keyhole: saved on this device.");
+				}),
+		);
 	}
 
 	private async testConnection(): Promise<void> {
