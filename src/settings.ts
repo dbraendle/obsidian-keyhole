@@ -30,6 +30,8 @@ export interface KeyholeSettings {
 	imageMaxEdge: number;
 	imageQuality: number;
 	toolbarPrompted: boolean;
+	limitEditHeight: boolean;
+	editMaxHeightPercent: number;
 	fallbackToLocal: boolean;
 
 	cacheEnabled: boolean;
@@ -61,6 +63,8 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 	imageMaxEdge: 2560,
 	imageQuality: 85,
 	toolbarPrompted: false,
+	limitEditHeight: true,
+	editMaxHeightPercent: 50,
 	fallbackToLocal: true,
 
 	cacheEnabled: true,
