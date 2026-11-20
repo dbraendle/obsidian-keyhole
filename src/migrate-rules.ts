@@ -8,6 +8,13 @@ export function isAttachment(extension: string): boolean {
 	return !NOT_ATTACHMENTS.has(extension.toLowerCase());
 }
 
+/** For links that do not resolve: does the link name a file (has an extension) rather than a note? */
+export function looksLikeAttachment(linkpath: string): boolean {
+	const base = linkpath.split("/").pop() ?? "";
+	const dot = base.lastIndexOf(".");
+	return dot > 0 && isAttachment(base.slice(dot + 1));
+}
+
 /**
  * The size part of an embed, e.g. "300" or "300x200", from
  * `![[photo.jpg|300]]` or `![photo.jpg|300](photo.jpg)`. Empty if there is none.

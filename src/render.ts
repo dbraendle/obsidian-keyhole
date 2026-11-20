@@ -2,6 +2,7 @@ import { loadPdfJs, setIcon } from "obsidian";
 import { displayName as fileName, parseUrl, UPLOADING_ALIAS, type KeyholeRef } from "./link";
 import { kindOf, type MediaKind } from "./mime";
 import type { Resolver } from "./resolver";
+import { t } from "./i18n";
 
 const SELECTOR = 'img[src^="keyhole:" i]';
 
@@ -82,11 +83,11 @@ export class Renderer {
 		img.addClass("keyhole-target");
 
 		if (ref.alias === UPLOADING_ALIAS) {
-			this.showStatus(img, ref, "uploading", "Uploading…");
+			this.showStatus(img, ref, "uploading", t("render.uploading"));
 			return;
 		}
 		if (ref.alias !== this.storeAlias) {
-			this.showStatus(img, ref, "error", `Unknown storage "${ref.alias}"`);
+			this.showStatus(img, ref, "error", t("render.unknownStorage", { alias: ref.alias }));
 			return;
 		}
 		const kind = kindOf(ref.key);
@@ -144,7 +145,7 @@ export class Renderer {
 		if (!el) return;
 		el.addClass("keyhole-status");
 		setIcon(el.createSpan({ cls: "keyhole-status-icon" }), state === "uploading" ? "upload-cloud" : "alert-triangle");
-		el.createSpan({ text: state === "uploading" ? `${img.alt || "File"} – ${text}` : `${fileName(ref)}: ${text}` });
+		el.createSpan({ text: state === "uploading" ? `${img.alt || t("render.file")} – ${text}` : `${fileName(ref)}: ${text}` });
 		if (state === "error") this.onError(text);
 	}
 
@@ -172,13 +173,13 @@ export class Renderer {
 	private renderFileCard(el: HTMLElement, ref: KeyholeRef): void {
 		setIcon(el.createSpan({ cls: "keyhole-file-icon" }), "file");
 		el.createSpan({ cls: "keyhole-file-name", text: fileName(ref) });
-		const button = el.createEl("button", { text: "Download" });
+		const button = el.createEl("button", { text: t("render.download") });
 		button.addEventListener("click", () => void this.download(ref, button));
 	}
 
 	private async download(ref: KeyholeRef, button: HTMLButtonElement): Promise<void> {
 		button.disabled = true;
-		button.setText("Loading…");
+		button.setText(t("render.loading"));
 		try {
 			const url = await this.resolver.blobUrl(ref);
 			const name = fileName(ref);
@@ -194,7 +195,7 @@ export class Renderer {
 			this.onError(messageOf(err));
 		} finally {
 			button.disabled = false;
-			button.setText("Download");
+			button.setText(t("render.download"));
 		}
 	}
 
@@ -202,7 +203,7 @@ export class Renderer {
 		const header = el.createDiv({ cls: "keyhole-pdf-header" });
 		setIcon(header.createSpan({ cls: "keyhole-file-icon" }), "file-text");
 		header.createSpan({ cls: "keyhole-file-name", text: fileName(ref) });
-		const download = header.createEl("button", { text: "Download" });
+		const download = header.createEl("button", { text: t("render.download") });
 		download.addEventListener("click", () => void this.download(ref, download));
 		const pages = el.createDiv({ cls: "keyhole-pdf-pages" });
 		try {
@@ -264,5 +265,5 @@ interface PdfJs {
 }
 
 export function messageOf(err: unknown): string {
-	return err instanceof Error ? err.message : "Unknown error";
+	return err instanceof Error ? err.message : t("error.unknown");
 }

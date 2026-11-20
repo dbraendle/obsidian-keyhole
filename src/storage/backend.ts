@@ -1,4 +1,5 @@
 import { requestUrl, type RequestUrlParam, type RequestUrlResponse } from "obsidian";
+import { t } from "../i18n";
 
 export interface StorageBackend {
 	/** Stable, non-secret identity of the storage location (used to namespace the cache). */
@@ -38,7 +39,7 @@ export async function http(params: RequestUrlParam, what: string): Promise<Reque
 	try {
 		res = await requestUrl({ ...params, throw: false });
 	} catch (err) {
-		throw new StorageError(`${what}: network error (${err instanceof Error ? err.message : "unknown"})`);
+		throw new StorageError(t("storage.networkError", { what, error: err instanceof Error ? err.message : t("error.unknown") }));
 	}
 	if (res.status >= 400) {
 		throw new StorageError(`${what}: ${describeStatus(res.status)}`, res.status);
@@ -49,17 +50,17 @@ export async function http(params: RequestUrlParam, what: string): Promise<Reque
 export function describeStatus(status: number): string {
 	switch (status) {
 		case 401:
-			return "not authorized (401) – check the credentials";
+			return t("storage.status401");
 		case 403:
-			return "access denied (403) – check the credentials and permissions";
+			return t("storage.status403");
 		case 404:
-			return "not found (404)";
+			return t("storage.status404");
 		case 409:
-			return "conflict (409)";
+			return t("storage.status409");
 		case 413:
-			return "file too large for the server (413)";
+			return t("storage.status413");
 		default:
-			return `HTTP ${status}`;
+			return t("storage.statusOther", { status });
 	}
 }
 

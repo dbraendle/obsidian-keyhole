@@ -1,6 +1,7 @@
 import { Notice, TFile, getLinkpath, type App } from "obsidian";
 import { mimeOf } from "./mime";
-import { applyReplacements, formatBytes, isAttachment, keyholeEmbed, sizeOf, type Replacement } from "./migrate-rules";
+import { t } from "./i18n";
+import { applyReplacements, formatBytes, isAttachment, keyholeEmbed, looksLikeAttachment, sizeOf, type Replacement } from "./migrate-rules";
 import { messageOf } from "./render";
 import type { KeyholeSettings } from "./settings";
 import type { StoredFile, Uploader } from "./upload";
@@ -37,9 +38,16 @@ export class Migrator {
 		// Group embeds by the file they point to: a file embedded twice is uploaded once.
 		const targets = new Map<string, { file: TFile; embeds: typeof embeds }>();
 		let skipped = 0;
+		// Embeds of attachments that are not on this device (e.g. not synced yet).
+		const missing = new Set<string>();
 		for (const embed of embeds) {
-			const file = app.metadataCache.getFirstLinkpathDest(getLinkpath(embed.link), note.path);
-			if (!file || !isAttachment(file.extension)) continue;
+			const linkpath = getLinkpath(embed.link);
+			const file = app.metadataCache.getFirstLinkpathDest(linkpath, note.path);
+			if (!file) {
+				if (looksLikeAttachment(linkpath)) missing.add(linkpath);
+				continue;
+			}
+			if (!isAttachment(file.extension)) continue;
 			if (!shouldUpload({ name: file.name, type: mimeOf(file.name), size: file.stat.size }, settings)) {
 				skipped++;
 				continue;
@@ -50,14 +58,17 @@ export class Migrator {
 		}
 		if (!targets.size) {
 			new Notice(
-				skipped
-					? `Keyhole: ${skipped} attachment(s) in this note do not match the upload settings (type or size).`
-					: "Keyhole: this note has no local attachments.",
+				missing.size
+					? t("move.onlyMissing", { count: missing.size })
+					: skipped
+						? t("move.noneMatching", { count: skipped })
+						: t("move.none"),
+				missing.size ? 10000 : undefined,
 			);
 			return;
 		}
 
-		const notice = new Notice(`Keyhole: moving ${targets.size} attachment(s)…`, 0);
+		const notice = new Notice(t("move.start", { count: targets.size }), 0);
 		const replacements: Replacement[] = [];
 		const moved: { file: TFile; stored: StoredFile }[] = [];
 		const failed: string[] = [];
@@ -78,7 +89,7 @@ export class Migrator {
 			} catch (err) {
 				failed.push(`${file.name} (${messageOf(err)})`);
 			}
-			notice.setMessage(`Keyhole: moving attachments… ${++done} of ${targets.size}`);
+			notice.setMessage(t("move.progress", { done: ++done, count: targets.size }));
 		}
 
 		let applied = 0;
@@ -106,14 +117,15 @@ export class Migrator {
 
 		const before = moved.reduce((sum, m) => sum + m.stored.originalBytes, 0);
 		const after = moved.reduce((sum, m) => sum + m.stored.bytes, 0);
-		const parts = [`Keyhole: moved ${moved.length} attachment(s), ${formatBytes(before)} → ${formatBytes(after)}.`];
-		if (trashed) parts.push(`${trashed} local file(s) moved to the trash.`);
-		if (kept) parts.push(`${kept} kept because other notes still use them.`);
-		if (skipped) parts.push(`${skipped} skipped (type or size).`);
-		if (failed.length) parts.push(`Failed: ${failed.join(", ")}.`);
-		if (applied < replacements.length) parts.push("Some links could not be rewritten; local files were kept.");
+		const parts = [t("move.result", { count: moved.length, before: formatBytes(before), after: formatBytes(after) })];
+		if (trashed) parts.push(t("move.trashed", { count: trashed }));
+		if (kept) parts.push(t("move.kept", { count: kept }));
+		if (skipped) parts.push(t("move.skipped", { count: skipped }));
+		if (missing.size) parts.push(t("move.missing", { count: missing.size }));
+		if (failed.length) parts.push(t("move.failed", { list: failed.join(", ") }));
+		if (applied < replacements.length) parts.push(t("move.notRewritten"));
 		notice.setMessage(parts.join(" "));
-		window.setTimeout(() => notice.hide(), failed.length ? 15000 : 8000);
+		window.setTimeout(() => notice.hide(), failed.length || missing.size ? 15000 : 8000);
 	}
 
 	private usedElsewhere(file: TFile, note: TFile): boolean {
