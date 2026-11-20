@@ -24,6 +24,13 @@ jobs:
       - run: pnpm build
       - name: Release files are complete
         run: test -s main.js && test -s manifest.json && test -s styles.css
+      - name: Versions are consistent
+        run: |
+          node -e '
+            const m = require("./manifest.json"), p = require("./package.json"), v = require("./versions.json");
+            if (m.version !== p.version) throw new Error(`manifest ${m.version} != package.json ${p.version}`);
+            if (v[m.version] !== m.minAppVersion) throw new Error(`versions.json lacks ${m.version} -> ${m.minAppVersion}`);
+          '
 
   s3-smoke:
     # SigV4 against a real S3-compatible server (throwaway SeaweedFS, test credentials only).

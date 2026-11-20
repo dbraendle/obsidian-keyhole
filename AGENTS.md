@@ -7,5 +7,6 @@
 - Never put secrets into settings (`data.json`): use `app.secretStorage` and store only the entry name.
 - `src/storage/keyhole-sign.ts` and `server/src/sign.ts` must stay in sync; a test checks they agree.
 - The link format `keyhole://<alias>/<key>` is a public contract. Changing it breaks users' notes.
-- Releases: bump with `pnpm version <x.y.z>` (no "v" prefix), push the tag. Agents may publish releases on their own once `pnpm check` and CI are green (maintainer's standing permission, 2026-11-20). If the `release` environment still requires a reviewer, ask the maintainer to remove it; never approve or disable that gate yourself. External pull requests never merge without the maintainer.
+- Workflow: never push to `main` directly. Work on a branch (`feat/…`, `fix/…`, `ci/…`), open a pull request, wait for green CI, then squash-merge. External pull requests never merge without the maintainer.
+- Releases are automatic: a push to `main` whose `manifest.json` version has no GitHub release yet publishes it (plugin files + server image). To ship, bump the version in the pull request with `pnpm version <patch|minor> --no-git-tag-version` (updates package.json, manifest.json, versions.json). No bump, no release.
 - E2E testing on desktop: launch a separate Obsidian instance with `--user-data-dir=<tmp> --remote-debugging-port=<port>` on a throwaway vault and drive it over the DevTools protocol. Never touch the user's real vaults.
