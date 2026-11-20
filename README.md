@@ -64,6 +64,7 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 
 - **Drop or paste** files into a note. Keyhole takes files that match *Upload these files* and are under the size limit; everything else is left to Obsidian.
 - **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On mobile, add the command to the toolbar.
+- **Move local attachments of the current note to your storage** (command palette, or right-click a note → *Move attachments to Keyhole*) uploads the note's existing attachments, shrinks images, rewrites the embeds and moves the local files to the trash. Files that other notes still use are kept.
 - **Keep attachments of the current note on this device** downloads all of a note's files for offline use.
 - Links look like `![photo.jpg](keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg)`. You can resize images as usual: `![photo.jpg|300](…)`.
 

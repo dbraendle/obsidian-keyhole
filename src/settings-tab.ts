@@ -154,6 +154,11 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						control: { type: "toggle", key: "fallbackToLocal" },
 					},
 					{
+						name: "Remove local copies after moving",
+						desc: "When you move a note's local attachments to Keyhole, the local files go to the trash (as set in Obsidian's Files & links settings). Files that other notes still use are always kept.",
+						control: { type: "toggle", key: "trashMovedAttachments" },
+					},
+					{
 						name: "Key prefix",
 						desc: "Optional folder in the storage, for example the vault name. Changing it only affects new uploads.",
 						control: { type: "text", key: "keyPrefix", placeholder: "my-vault/" },

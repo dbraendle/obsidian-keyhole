@@ -96,3 +96,26 @@ describe("image sizing", () => {
 		expect(canOptimize("IMG_1.HEIC")).toBe(true);
 	});
 });
+
+describe("moving local attachments", () => {
+	it("keeps sizes and rewrites embeds", async () => {
+		const { sizeOf, keyholeEmbed, applyReplacements, isAttachment } = await import("../src/migrate-rules");
+		expect(sizeOf("![[photo.jpg|300]]")).toBe("300");
+		expect(sizeOf("![[photo.jpg|300x200]]")).toBe("300x200");
+		expect(sizeOf("![[photo.jpg|a caption]]")).toBe("");
+		expect(sizeOf("![photo|250](_attachments/photo.jpg)")).toBe("250");
+		expect(sizeOf("![[doc.pdf#page=2]]")).toBe("");
+		expect(isAttachment("md")).toBe(false);
+		expect(isAttachment("PDF")).toBe(true);
+		const ref = { alias: "main", key: "notes/2026/11/0123456789abcdef-photo.webp" };
+		expect(keyholeEmbed("photo.webp", "300", ref)).toBe("![photo.webp|300](keyhole://main/notes/2026/11/0123456789abcdef-photo.webp)");
+		const text = "A ![[a.png]] B ![[b.png|200]] C";
+		const out = applyReplacements(text, [
+			{ start: 2, end: 12, original: "![[a.png]]", replacement: "[A]" },
+			{ start: 15, end: 29, original: "![[b.png|200]]", replacement: "[B]" },
+		]);
+		expect(out).toEqual({ text: "A [A] B [B] C", applied: 2 });
+		// offsets moved: falls back to searching the original text
+		expect(applyReplacements("xx" + text, [{ start: 2, end: 12, original: "![[a.png]]", replacement: "[A]" }]).text).toBe("xxA [A] B ![[b.png|200]] C");
+	});
+});

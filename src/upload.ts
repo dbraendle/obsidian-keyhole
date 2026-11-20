@@ -16,6 +16,14 @@ export interface UploadContext {
 	resolver: Resolver;
 }
 
+export interface StoredFile {
+	ref: KeyholeRef;
+	/** File name after optimization (the extension may have changed). */
+	name: string;
+	bytes: number;
+	originalBytes: number;
+}
+
 export class Uploader {
 	constructor(private readonly ctx: UploadContext) {}
 
@@ -96,35 +104,45 @@ export class Uploader {
 	}
 
 	private async uploadOne(original: File, originalName: string, placeholder: string, note: TFile): Promise<void> {
+		try {
+			const stored = await this.store(original, originalName);
+			await this.replacePlaceholder(note, placeholder, markdownEmbed(stored.name, stored.ref));
+		} catch (err) {
+			const data = await original.arrayBuffer().catch(() => null);
+			await this.handleFailure(err, originalName, data, placeholder, note);
+		}
+	}
+
+	/**
+	 * Shrinks the file if it is an image (and the setting is on), uploads it under its
+	 * content-addressed key and keeps a copy in the cache. Used by paste/drop/picker
+	 * and by the migration of local attachments.
+	 */
+	async store(original: File, originalName: string): Promise<StoredFile> {
 		const settings = this.ctx.settings();
-		let data: ArrayBuffer | null = null;
 		let file = original;
 		let name = originalName;
-		try {
-			if (settings.optimizeImages) {
-				const smaller = await this.optimize(original, originalName);
-				if (smaller) {
-					file = smaller;
-					name = smaller.name;
-				}
+		if (settings.optimizeImages) {
+			const smaller = await this.optimize(original, originalName);
+			if (smaller) {
+				file = smaller;
+				name = smaller.name;
 			}
-			data = await file.arrayBuffer();
-			const hash = await sha256Hex(data);
-			const ref: KeyholeRef = {
-				alias: settings.alias,
-				key: buildKey({
-					prefix: settings.keyPrefix,
-					date: new Date(),
-					hash,
-					fileName: safeFileName(name, extensionForMime(file.type)),
-				}),
-			};
-			await this.ctx.backend().put(ref.key, data, file.type || mimeOf(ref.key));
-			await this.ctx.resolver.prime(ref, data);
-			await this.replacePlaceholder(note, placeholder, markdownEmbed(name, ref));
-		} catch (err) {
-			await this.handleFailure(err, name, data, placeholder, note);
 		}
+		const data = await file.arrayBuffer();
+		const hash = await sha256Hex(data);
+		const ref: KeyholeRef = {
+			alias: settings.alias,
+			key: buildKey({
+				prefix: settings.keyPrefix,
+				date: new Date(),
+				hash,
+				fileName: safeFileName(name, extensionForMime(file.type)),
+			}),
+		};
+		await this.ctx.backend().put(ref.key, data, file.type || mimeOf(ref.key));
+		await this.ctx.resolver.prime(ref, data);
+		return { ref, name, bytes: data.byteLength, originalBytes: original.size };
 	}
 
 	/** One image at a time: decoding a 12-megapixel photo takes a lot of memory on phones. */
