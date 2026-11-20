@@ -88,9 +88,14 @@ img.keyhole-loading {
 .keyhole-pdf-page {
 	display: block;
 	width: 100%;
-	min-height: 200px;
+	aspect-ratio: var(--keyhole-page-ratio, 1 / 1.414);
 	margin-bottom: var(--size-4-2);
 	background: white;
+}
+
+.keyhole-pdf-count {
+	color: var(--text-muted);
+	white-space: nowrap;
 }
 
 .keyhole-file-input {
@@ -134,13 +139,14 @@ body.keyhole-limit-edit-height .markdown-source-view.is-live-preview img.keyhole
 	max-width: 100%;
 }
 
-/* Hint bar: note has local attachments */
+/* Hint bar: note has local attachments. Sits in the scrolling content above the title. */
 .keyhole-hint {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--size-4-2);
-	margin: var(--size-4-2) var(--size-4-4) 0;
-	padding: var(--size-4-1) var(--size-4-2) var(--size-4-1) var(--size-4-3);
+	margin: 0 0 var(--size-4-4);
+	padding: var(--size-4-2) var(--size-4-2) var(--size-4-2) var(--size-4-3);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 	background: var(--background-secondary);
@@ -154,7 +160,14 @@ body.keyhole-limit-edit-height .markdown-source-view.is-live-preview img.keyhole
 }
 
 .keyhole-hint-text {
-	flex: 1;
+	flex: 1 1 12em;
+}
+
+.keyhole-hint-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-1);
+	margin-left: auto;
 }
 
 .keyhole-hint button {

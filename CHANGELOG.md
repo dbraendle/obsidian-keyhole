@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Hint bar sits in the scrolling note content below the title (it hid under the floating header on phones and did not scroll).
+- PDF viewer: page count, pages rendered only near the visible area and released when far away (long PDFs on phones), stable layout while scrolling, the file name from the link.
+- Clean-up explains when only recent unused files exist.
+
 ## 0.4.0
 
 - Right-click (long-press) menu on Keyhole files: open, copy link, download/share, bring back into the vault, delete from storage.

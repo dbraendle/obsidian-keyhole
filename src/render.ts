@@ -152,7 +152,7 @@ export class Renderer {
 	private renderEmbed(img: HTMLImageElement, ref: KeyholeRef, kind: Exclude<MediaKind, "image">): void {
 		const el = this.container(img, ref, `keyhole-${kind}`);
 		if (!el) return;
-		this.fill(el, ref, kind, img.getAttribute("width"));
+		this.fill(el, ref, kind, img.getAttribute("width"), labelOf(img, ref));
 	}
 
 	/** Renders any Keyhole file into a container of its own (used by the file viewer). */
@@ -167,10 +167,16 @@ export class Renderer {
 				.catch((err) => this.replaceWithError(el, ref, err));
 			return;
 		}
-		this.fill(el, ref, kind, null);
+		this.fill(el, ref, kind, null, fileName(ref));
 	}
 
-	private fill(el: HTMLElement, ref: KeyholeRef, kind: Exclude<MediaKind, "image">, width: string | null): void {
+	private fill(
+		el: HTMLElement,
+		ref: KeyholeRef,
+		kind: Exclude<MediaKind, "image">,
+		width: string | null,
+		label: string,
+	): void {
 		if (kind === "audio" || kind === "video") {
 			const media = el.createEl(kind, { attr: { controls: "", preload: "metadata" } });
 			if (kind === "video") {
@@ -182,15 +188,15 @@ export class Renderer {
 				.then((url) => media.setAttr("src", url))
 				.catch((err) => this.replaceWithError(el, ref, err));
 		} else if (kind === "pdf") {
-			void this.renderPdf(el, ref);
+			void this.renderPdf(el, ref, label);
 		} else {
-			this.renderFileCard(el, ref);
+			this.renderFileCard(el, ref, label);
 		}
 	}
 
-	private renderFileCard(el: HTMLElement, ref: KeyholeRef): void {
+	private renderFileCard(el: HTMLElement, ref: KeyholeRef, label: string): void {
 		setIcon(el.createSpan({ cls: "keyhole-file-icon" }), "file");
-		el.createSpan({ cls: "keyhole-file-name", text: fileName(ref) });
+		el.createSpan({ cls: "keyhole-file-name", text: label });
 		const button = el.createEl("button", { text: t("render.download") });
 		button.addEventListener("click", () => void this.download(ref, button));
 	}
@@ -221,44 +227,64 @@ export class Renderer {
 		}
 	}
 
-	private async renderPdf(el: HTMLElement, ref: KeyholeRef): Promise<void> {
+	private async renderPdf(el: HTMLElement, ref: KeyholeRef, label: string): Promise<void> {
 		const header = el.createDiv({ cls: "keyhole-pdf-header" });
 		setIcon(header.createSpan({ cls: "keyhole-file-icon" }), "file-text");
-		header.createSpan({ cls: "keyhole-file-name", text: fileName(ref) });
+		header.createSpan({ cls: "keyhole-file-name", text: label });
+		const pageCount = header.createSpan({ cls: "keyhole-pdf-count" });
 		const download = header.createEl("button", { text: t("render.download") });
 		download.addEventListener("click", () => void this.download(ref, download));
 		const pages = el.createDiv({ cls: "keyhole-pdf-pages" });
 		try {
 			const [pdfjs, blob] = await Promise.all([loadPdfJs() as Promise<PdfJs>, this.resolver.blob(ref)]);
-			const data = await blob.arrayBuffer();
-			const doc = await pdfjs.getDocument({ data }).promise;
-			const observer = new IntersectionObserver((entries) => {
-				for (const entry of entries) {
-					if (!entry.isIntersecting) continue;
-					observer.unobserve(entry.target);
-					const canvas = entry.target as HTMLCanvasElement;
-					void this.renderPdfPage(doc, Number(canvas.dataset.page), canvas, pages.clientWidth);
-				}
-			});
+			const doc = await pdfjs.getDocument({ data: await blob.arrayBuffer() }).promise;
+			pageCount.setText(t("render.pages", { count: doc.numPages }));
+			// Placeholders get the first page's proportions, so nothing jumps while scrolling.
+			const first = (await doc.getPage(1)).getViewport({ scale: 1 });
+			const ratio = `${first.width} / ${first.height}`;
+			const canvases: HTMLCanvasElement[] = [];
 			for (let n = 1; n <= doc.numPages; n++) {
 				const canvas = pages.createEl("canvas", { cls: "keyhole-pdf-page" });
 				canvas.dataset.page = String(n);
-				observer.observe(canvas);
+				canvas.setCssProps({ "--keyhole-page-ratio": ratio });
+				canvases.push(canvas);
 			}
+			// Render pages close to the visible area; free those far away (phones have little canvas memory).
+			const observer = new IntersectionObserver(
+				(entries) => {
+					for (const entry of entries) {
+						const canvas = entry.target as HTMLCanvasElement;
+						if (entry.isIntersecting) void this.renderPdfPage(doc, canvas, pages.clientWidth);
+						else freePdfPage(canvas);
+					}
+				},
+				{ root: pages, rootMargin: "1200px 0px" },
+			);
+			canvases.forEach((c) => observer.observe(c));
 		} catch (err) {
 			this.replaceWithError(el, ref, err);
 		}
 	}
 
-	private async renderPdfPage(doc: PdfDocument, n: number, canvas: HTMLCanvasElement, width: number): Promise<void> {
-		const page = await doc.getPage(n);
-		const base = page.getViewport({ scale: 1 });
-		const scale = (Math.max(width, 300) / base.width) * (window.devicePixelRatio || 1);
-		const viewport = page.getViewport({ scale });
-		canvas.width = viewport.width;
-		canvas.height = viewport.height;
-		const ctx = canvas.getContext("2d");
-		if (ctx) await page.render({ canvasContext: ctx, viewport }).promise;
+	private async renderPdfPage(doc: PdfDocument, canvas: HTMLCanvasElement, width: number): Promise<void> {
+		if (canvas.dataset.state === "rendered" || canvas.dataset.state === "rendering") return;
+		canvas.dataset.state = "rendering";
+		try {
+			const page = await doc.getPage(Number(canvas.dataset.page));
+			const base = page.getViewport({ scale: 1 });
+			const dpr = Math.min(window.devicePixelRatio || 1, 2);
+			const viewport = page.getViewport({ scale: (Math.max(width, 300) / base.width) * dpr });
+			if (canvas.dataset.state !== "rendering") return; // freed meanwhile
+			canvas.width = viewport.width;
+			canvas.height = viewport.height;
+			canvas.setCssProps({ "--keyhole-page-ratio": `${base.width} / ${base.height}` });
+			const ctx = canvas.getContext("2d");
+			if (!ctx) return;
+			await page.render({ canvasContext: ctx, viewport }).promise;
+			if (canvas.dataset.state === "rendering") canvas.dataset.state = "rendered";
+		} catch {
+			delete canvas.dataset.state;
+		}
 	}
 
 	private replaceWithError(el: HTMLElement, ref: KeyholeRef, err: unknown): void {
@@ -284,6 +310,20 @@ interface PdfDocument {
 }
 interface PdfJs {
 	getDocument(opts: { data: ArrayBuffer }): { promise: Promise<PdfDocument> };
+}
+
+/** The name people gave the file (alt text without a size suffix), else the name from the key. */
+function labelOf(img: HTMLImageElement, ref: KeyholeRef): string {
+	const alt = (img.getAttribute("alt") ?? "").replace(/\|\d+(x\d+)?\s*$/, "").trim();
+	return alt || fileName(ref);
+}
+
+/** Releases a page's pixel memory but keeps its size, so the layout does not move. */
+function freePdfPage(canvas: HTMLCanvasElement): void {
+	if (!canvas.dataset.state) return;
+	delete canvas.dataset.state;
+	canvas.width = 0;
+	canvas.height = 0;
 }
 
 export function messageOf(err: unknown): string {

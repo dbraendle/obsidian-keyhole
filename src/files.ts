@@ -341,7 +341,10 @@ class CleanupModal extends Modal {
 		);
 
 		if (!orphans.length) {
-			contentEl.createEl("p", { text: t("cleanup.nothing") });
+			const recent = this.includeRecent ? 0 : findOrphans(this.objects, this.referenced, Date.now(), true).length;
+			contentEl.createEl("p", {
+				text: recent ? t("cleanup.onlyRecent", { count: recent, days: CLEANUP_GRACE_DAYS }) : t("cleanup.nothing"),
+			});
 			return;
 		}
 

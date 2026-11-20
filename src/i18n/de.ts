@@ -53,6 +53,7 @@ export const de: Record<TextKey, string> = {
 
 	"render.uploading": "Wird hochgeladen …",
 	"render.unknownStorage": "Unbekannter Speicher „{alias}“",
+	"render.pages": "1 Seite|{count} Seiten",
 	"render.download": "Herunterladen",
 	"render.loading": "Lädt …",
 	"render.file": "Datei",
@@ -193,6 +194,7 @@ export const de: Record<TextKey, string> = {
 	"cleanup.noPrefix":
 		"Dein Speicher hat keinen eigenen Ordner für diesen Vault (siehe „Ordner im Speicher“). Nutzen andere Vaults oder Programme denselben Speicher, tauchen deren Dateien hier auch auf – genau hinschauen.",
 	"cleanup.includeRecent": "Auch Dateien der letzten {days} Tage zeigen",
+	"cleanup.onlyRecent": "Nichts, was älter als {days} Tage ist. 1 ungenutzte Datei stammt aus den letzten {days} Tagen – schalte oben den Schalter ein, um sie zu sehen.|Nichts, was älter als {days} Tage ist. {count} ungenutzte Dateien stammen aus den letzten {days} Tagen – schalte oben den Schalter ein, um sie zu sehen.",
 	"cleanup.nothing": "Nichts aufzuräumen.",
 	"cleanup.selectAll": "Alle auswählen",
 	"cleanup.delete": "1 Datei löschen ({size})|{count} Dateien löschen ({size})",

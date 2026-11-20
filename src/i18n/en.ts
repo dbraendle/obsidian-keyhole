@@ -60,6 +60,7 @@ export const en = {
 	// Rendering
 	"render.uploading": "Uploading…",
 	"render.unknownStorage": "Unknown storage \"{alias}\"",
+	"render.pages": "1 page|{count} pages",
 	"render.download": "Download",
 	"render.loading": "Loading…",
 	"render.file": "File",
@@ -205,6 +206,7 @@ export const en = {
 	"cleanup.noPrefix":
 		"Your storage has no folder for this vault (see Key prefix). If other vaults or apps use the same storage, their files show up here as well – check carefully.",
 	"cleanup.includeRecent": "Also show files from the last {days} days",
+	"cleanup.onlyRecent": "Nothing older than {days} days. 1 unused file is from the last {days} days – turn on the switch above to see it.|Nothing older than {days} days. {count} unused files are from the last {days} days – turn on the switch above to see them.",
 	"cleanup.nothing": "Nothing to clean up.",
 	"cleanup.selectAll": "Select all",
 	"cleanup.delete": "Delete 1 file ({size})|Delete {count} files ({size})",
