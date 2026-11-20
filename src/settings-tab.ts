@@ -27,14 +27,14 @@ export class KeyholeSettingTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Storage type",
-						desc: "Where attachments are stored. All options keep files private: nothing is publicly readable.",
+						desc: "S3-compatible: AWS S3, Cloudflare R2, Backblaze B2, MinIO, Garage. WebDAV: Nextcloud, Synology, rclone. All options keep files private.",
 						control: {
 							type: "dropdown",
 							key: "storageType",
 							options: {
-								s3: "S3-compatible (AWS S3, Cloudflare R2, Backblaze B2, MinIO, Garage …)",
+								s3: "S3-compatible",
 								keyhole: "Keyhole server",
-								webdav: "WebDAV (Nextcloud, Synology, rclone …)",
+								webdav: "WebDAV",
 							},
 						},
 					},
@@ -84,7 +84,7 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						control: {
 							type: "dropdown",
 							key: "httpAuth",
-							options: { bearer: "Bearer token", basic: "Username and password" },
+							options: { bearer: "Token", basic: "Username + password" },
 						},
 					},
 					{
@@ -110,13 +110,13 @@ export class KeyholeSettingTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Upload these files",
-						desc: "Files dropped or pasted into a note that match go to your storage; everything else is handled by Obsidian as usual.",
+						desc: "Matching files you drop, paste or pick go to your storage; everything else is handled by Obsidian as usual. Media means images, audio, video and PDF.",
 						control: {
 							type: "dropdown",
 							key: "uploadScope",
 							options: {
 								all: "All files",
-								media: "Images, audio, video and PDF",
+								media: "Media only",
 								images: "Images only",
 							},
 						},
