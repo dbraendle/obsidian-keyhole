@@ -75,7 +75,7 @@ export class Renderer {
 		else this.renderEmbed(img, ref, kind);
 	}
 
-	private async renderImage(img: HTMLImageElement, ref: KeyholeRef, src: string): Promise<void> {
+	private async renderImage(img: HTMLImageElement, ref: KeyholeRef, src: string, retried = false): Promise<void> {
 		img.addClass("keyhole-loading");
 		try {
 			const url = await this.resolver.blobUrl(ref);
@@ -83,6 +83,18 @@ export class Renderer {
 			if (img.dataset.keyholeSrc !== src) return;
 			img.removeClass("keyhole-loading", "keyhole-hidden");
 			img.nextElementSibling?.hasClass("keyhole-status") && img.nextElementSibling.remove();
+			// If the cached bytes turn out to be unreadable, drop them and download once more.
+			if (!retried) {
+				img.addEventListener(
+					"error",
+					() => {
+						if (img.getAttribute("src") !== url || img.dataset.keyholeRetried === src) return;
+						img.dataset.keyholeRetried = src;
+						void this.resolver.invalidate(ref).then(() => this.renderImage(img, ref, src, true));
+					},
+					{ once: true },
+				);
+			}
 			img.setAttribute("src", url);
 		} catch (err) {
 			if (img.dataset.keyholeSrc !== src) return;

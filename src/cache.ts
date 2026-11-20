@@ -2,14 +2,21 @@
  * Offline cache in IndexedDB. It lives in this device's app storage, outside the
  * vault, so it is never synced, committed or backed up with the notes.
  * Entries are content-addressed (keys contain a content hash), so they never go stale.
+ *
+ * Bytes are stored as ArrayBuffer, not Blob: on iOS (WKWebView) Blobs read back
+ * from IndexedDB after an app restart are often unreadable ("WebKitBlobResource
+ * error 1"), which shows up as broken images.
  */
 
 interface Entry {
 	id: string;
-	blob: Blob;
+	data: ArrayBuffer;
+	type: string;
 	size: number;
 	lastAccess: number;
 }
+
+const DB_VERSION = 2;
 
 const STORE = "files";
 
@@ -36,9 +43,12 @@ export class FileCache {
 	private open(): Promise<IDBDatabase> {
 		if (!this.db) {
 			this.db = new Promise((resolve, reject) => {
-				const req = indexedDB.open(this.name, 1);
+				const req = indexedDB.open(this.name, DB_VERSION);
 				req.onupgradeneeded = () => {
-					const store = req.result.createObjectStore(STORE, { keyPath: "id" });
+					const db = req.result;
+					// Version 1 stored Blobs (see above): start over.
+					if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
+					const store = db.createObjectStore(STORE, { keyPath: "id" });
 					store.createIndex("lastAccess", "lastAccess");
 				};
 				req.onsuccess = () => resolve(req.result);
@@ -56,7 +66,8 @@ export class FileCache {
 		const entry = (await promisify(store.get(id))) as Entry | undefined;
 		if (entry) store.put({ ...entry, lastAccess: Date.now() });
 		await done(tx);
-		return entry?.blob ?? null;
+		if (!entry || !(entry.data instanceof ArrayBuffer)) return null;
+		return new Blob([entry.data], { type: entry.type });
 	}
 
 	async has(id: string): Promise<boolean> {
@@ -67,11 +78,19 @@ export class FileCache {
 	}
 
 	async put(id: string, blob: Blob, maxBytes: number): Promise<void> {
+		const data = await blob.arrayBuffer();
 		const db = await this.open();
 		const tx = db.transaction(STORE, "readwrite");
-		tx.objectStore(STORE).put({ id, blob, size: blob.size, lastAccess: Date.now() } satisfies Entry);
+		tx.objectStore(STORE).put({ id, data, type: blob.type, size: data.byteLength, lastAccess: Date.now() } satisfies Entry);
 		await done(tx);
 		await this.evict(maxBytes);
+	}
+
+	async delete(id: string): Promise<void> {
+		const db = await this.open();
+		const tx = db.transaction(STORE, "readwrite");
+		tx.objectStore(STORE).delete(id);
+		await done(tx);
 	}
 
 	/** Removes least recently used entries until the cache fits into maxBytes. */

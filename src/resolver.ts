@@ -129,6 +129,19 @@ export class Resolver {
 		return url;
 	}
 
+	/** Forgets a file in memory and in the offline cache, so the next load downloads it again. */
+	async invalidate(ref: KeyholeRef): Promise<void> {
+		const id = this.cacheId(ref.key);
+		const entry = this.memory.get(id);
+		if (entry) {
+			URL.revokeObjectURL(entry.url);
+			this.memoryBytes -= entry.blob.size;
+			this.memory.delete(id);
+		}
+		this.inflight.delete(id);
+		await this.cache.delete(id).catch(() => undefined);
+	}
+
 	/** Drops in-memory URLs, e.g. after the storage settings changed. */
 	reset(): void {
 		for (const entry of this.memory.values()) URL.revokeObjectURL(entry.url);
