@@ -31,6 +31,7 @@ export interface KeyholeSettings {
 	imageQuality: number;
 	toolbarPrompted: boolean;
 	trashMovedAttachments: boolean;
+	suggestMove: boolean;
 	limitEditHeight: boolean;
 	editMaxHeightPercent: number;
 	fallbackToLocal: boolean;
@@ -65,6 +66,7 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 	imageQuality: 85,
 	toolbarPrompted: false,
 	trashMovedAttachments: true,
+	suggestMove: true,
 	limitEditHeight: true,
 	editMaxHeightPercent: 50,
 	fallbackToLocal: true,

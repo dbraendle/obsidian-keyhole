@@ -10,10 +10,10 @@
  * No dependencies beyond Node.js. Put it behind a TLS-terminating reverse proxy.
  */
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { pipeline } from "node:stream/promises";
 import { safeEqual, verifySignature } from "./sign.ts";
 
@@ -116,6 +116,30 @@ export function createHandler(config: Config) {
 
 		if (url.pathname === "/health") return send(res, 200, "ok");
 		if (!url.pathname.startsWith("/f/")) return send(res, 404, "not found");
+
+		// GET /f/?list=1[&prefix=…] → JSON list of stored files (bearer token only).
+		if (url.pathname === "/f/" && method === "GET" && url.searchParams.has("list")) {
+			if (!bearerOk(req)) {
+				res.setHeader("WWW-Authenticate", 'Bearer realm="keyhole"');
+				return send(res, 401, "unauthorized");
+			}
+			const prefix = url.searchParams.get("prefix") ?? "";
+			const files: { key: string; size: number; lastModified: number }[] = [];
+			const entries = await readdir(root, { recursive: true, withFileTypes: true });
+			for (const entry of entries) {
+				if (!entry.isFile() || entry.name.startsWith(".upload-")) continue;
+				const full = join(entry.parentPath, entry.name);
+				const key = relative(root, full).split(sep).join("/");
+				if (!key.startsWith(prefix) || !isValidKey(key)) continue;
+				const info = await stat(full);
+				files.push({ key, size: info.size, lastModified: info.mtimeMs });
+			}
+			res.statusCode = 200;
+			res.setHeader("Content-Type", "application/json");
+			res.setHeader("Cache-Control", "no-store");
+			res.end(JSON.stringify(files));
+			return;
+		}
 
 		let key: string;
 		try {

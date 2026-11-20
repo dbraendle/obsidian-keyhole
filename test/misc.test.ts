@@ -129,3 +129,30 @@ describe("unresolved embeds", () => {
 		expect(looksLikeAttachment("Some note.md")).toBe(false);
 	});
 });
+
+describe("storage listings", () => {
+	it("parses S3 ListObjectsV2", async () => {
+		const { parseS3List } = await import("../src/storage/listing");
+		const xml = `<?xml version="1.0"?><ListBucketResult><IsTruncated>true</IsTruncated>
+			<Contents><Key>notes/2026/11/a&amp;b.png</Key><LastModified>2026-11-20T13:51:20.718Z</LastModified><Size>7727029</Size></Contents>
+			<Contents><Key>notes/x.pdf</Key><LastModified>2026-11-01T00:00:00Z</LastModified><Size>388</Size></Contents>
+			<NextContinuationToken>abc==</NextContinuationToken></ListBucketResult>`;
+		const page = parseS3List(xml);
+		expect(page.objects).toEqual([
+			{ key: "notes/2026/11/a&b.png", size: 7727029, lastModified: Date.parse("2026-11-20T13:51:20.718Z") },
+			{ key: "notes/x.pdf", size: 388, lastModified: Date.parse("2026-11-01T00:00:00Z") },
+		]);
+		expect(page.next).toBe("abc==");
+	});
+	it("parses WebDAV multistatus", async () => {
+		const { parseDavList } = await import("../src/storage/listing");
+		const xml = `<d:multistatus xmlns:d="DAV:">
+			<d:response><d:href>/dav/keyhole/2026/</d:href><d:propstat><d:prop><d:resourcetype><d:collection/></d:resourcetype></d:prop></d:propstat></d:response>
+			<d:response><d:href>/dav/keyhole/2026/a%20b.png</d:href><d:propstat><d:prop><d:resourcetype/><d:getcontentlength>12</d:getcontentlength><d:getlastmodified>Fri, 20 Nov 2026 12:00:00 GMT</d:getlastmodified></d:prop></d:propstat></d:response>
+		</d:multistatus>`;
+		expect(parseDavList(xml)).toEqual([
+			{ path: "/dav/keyhole/2026/", collection: true, size: 0, lastModified: 0 },
+			{ path: "/dav/keyhole/2026/a b.png", collection: false, size: 12, lastModified: Date.parse("Fri, 20 Nov 2026 12:00:00 GMT") },
+		]);
+	});
+});

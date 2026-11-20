@@ -1,0 +1,11 @@
+name: Feature request
+description: An idea to make Keyhole better
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Keyhole to do?
+      description: Describe the situation you are in and what would help.
+    validations:
+      required: true

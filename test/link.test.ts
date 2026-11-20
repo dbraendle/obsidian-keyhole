@@ -65,3 +65,16 @@ describe("link format", () => {
 		expect(markdownEmbed("a [b] | c", { alias: "main", key: "k.png" })).toBe("![a b c](keyhole://main/k.png)");
 	});
 });
+
+describe("findLinks", () => {
+	it("finds embeds and plain links with sizes", async () => {
+		const { findLinks } = await import("../src/link");
+		const text = "A ![photo.webp|300](keyhole://main/2026/11/0123456789abcdef-photo.webp) and [Rechnung.pdf](keyhole://main/x/r.pdf) [web](https://x.y)";
+		const found = findLinks(text);
+		expect(found.map((f) => [f.embed, f.text, f.size, f.ref.key])).toEqual([
+			[true, "photo.webp", "300", "2026/11/0123456789abcdef-photo.webp"],
+			[false, "Rechnung.pdf", "", "x/r.pdf"],
+		]);
+		expect(text.slice(found[1]!.start, found[1]!.end)).toBe("[Rechnung.pdf](keyhole://main/x/r.pdf)");
+	});
+});

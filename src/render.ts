@@ -152,7 +152,25 @@ export class Renderer {
 	private renderEmbed(img: HTMLImageElement, ref: KeyholeRef, kind: Exclude<MediaKind, "image">): void {
 		const el = this.container(img, ref, `keyhole-${kind}`);
 		if (!el) return;
-		const width = img.getAttribute("width");
+		this.fill(el, ref, kind, img.getAttribute("width"));
+	}
+
+	/** Renders any Keyhole file into a container of its own (used by the file viewer). */
+	renderStandalone(container: HTMLElement, ref: KeyholeRef): void {
+		const kind = kindOf(ref.key);
+		const el = container.createDiv({ cls: ["keyhole-embed", `keyhole-${kind}`, "keyhole-standalone"] });
+		if (kind === "image") {
+			const img = el.createEl("img", { cls: "keyhole-standalone-image", attr: { alt: fileName(ref) } });
+			this.resolver
+				.blobUrl(ref)
+				.then((url) => img.setAttr("src", url))
+				.catch((err) => this.replaceWithError(el, ref, err));
+			return;
+		}
+		this.fill(el, ref, kind, null);
+	}
+
+	private fill(el: HTMLElement, ref: KeyholeRef, kind: Exclude<MediaKind, "image">, width: string | null): void {
 		if (kind === "audio" || kind === "video") {
 			const media = el.createEl(kind, { attr: { controls: "", preload: "metadata" } });
 			if (kind === "video") {
@@ -177,9 +195,11 @@ export class Renderer {
 		button.addEventListener("click", () => void this.download(ref, button));
 	}
 
-	private async download(ref: KeyholeRef, button: HTMLButtonElement): Promise<void> {
-		button.disabled = true;
-		button.setText(t("render.loading"));
+	async download(ref: KeyholeRef, button?: HTMLButtonElement): Promise<void> {
+		if (button) {
+			button.disabled = true;
+			button.setText(t("render.loading"));
+		}
 		try {
 			const url = await this.resolver.blobUrl(ref);
 			const name = fileName(ref);
@@ -194,8 +214,10 @@ export class Renderer {
 		} catch (err) {
 			this.onError(messageOf(err));
 		} finally {
-			button.disabled = false;
-			button.setText(t("render.download"));
+			if (button) {
+				button.disabled = false;
+				button.setText(t("render.download"));
+			}
 		}
 	}
 

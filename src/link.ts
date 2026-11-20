@@ -119,3 +119,37 @@ export function displayName(ref: KeyholeRef): string {
 	const last = ref.key.split("/").pop() ?? ref.key;
 	return last.replace(/^[0-9a-f]{16}-/, "");
 }
+
+export interface LinkMatch {
+	/** Offsets of the whole Markdown construct, e.g. `![alt|300](keyhole://…)`. */
+	start: number;
+	end: number;
+	embed: boolean;
+	/** Alt text without a size suffix. */
+	text: string;
+	/** "300" or "300x200" from `![alt|300](…)`, or "". */
+	size: string;
+	ref: KeyholeRef;
+}
+
+const MD_LINK_RE = /(!?)\[([^\]\n]*)\]\((keyhole:\/\/[^)\s]+)\)/gi;
+
+/** Every Keyhole link or embed in a Markdown text, in order. */
+export function findLinks(text: string): LinkMatch[] {
+	const out: LinkMatch[] = [];
+	for (const m of text.matchAll(MD_LINK_RE)) {
+		const ref = parseUrl(m[3]);
+		if (!ref || m.index === undefined) continue;
+		const alt = m[2] ?? "";
+		const sizeMatch = /\|(\d+(?:x\d+)?)\s*$/.exec(alt);
+		out.push({
+			start: m.index,
+			end: m.index + m[0].length,
+			embed: m[1] === "!",
+			text: sizeMatch ? alt.slice(0, sizeMatch.index) : alt,
+			size: sizeMatch?.[1] ?? "",
+			ref,
+		});
+	}
+	return out;
+}

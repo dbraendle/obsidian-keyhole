@@ -1,4 +1,5 @@
-import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend } from "./backend";
+import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend, type StoredObject } from "./backend";
+import { parseDavList } from "./listing";
 import { signKey } from "./keyhole-sign";
 import { isLocalHost } from "./s3";
 import { t } from "../i18n";
@@ -98,6 +99,45 @@ export class HttpBackend implements StorageBackend {
 		const expires = Math.floor(Date.now() / 1000) + Math.max(60, Math.floor(ttlSeconds));
 		const sig = await signKey(this.config.secret, "GET", key, expires);
 		return `${this.url(key)}?ke=${expires}&ks=${sig}`;
+	}
+
+	async list(prefix: string): Promise<StoredObject[]> {
+		if (this.config.keyholeServer) {
+			const url = `${this.base}?list=1${prefix ? `&prefix=${encodeURIComponent(prefix)}` : ""}`;
+			const res = await http({ url, method: "GET", headers: { Authorization: this.authHeader } }, t("storage.listFailed"));
+			return res.json as StoredObject[];
+		}
+		// WebDAV: walk the collections with Depth 1 (Depth: infinity is often disabled).
+		const basePath = decodeURIComponent(new URL(this.base).pathname);
+		const out: StoredObject[] = [];
+		const queue = [prefix.replace(/[^/]*$/, "")];
+		while (queue.length) {
+			const folder = queue.shift() ?? "";
+			const res = await http(
+				{
+					url: this.base + encodeKeyPath(folder),
+					method: "PROPFIND",
+					headers: { Authorization: this.authHeader, Depth: "1", "Content-Type": "application/xml" },
+					body: '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/><d:getcontentlength/><d:getlastmodified/></d:prop></d:propfind>',
+				},
+				t("storage.listFailed"),
+			);
+			for (const entry of parseDavList(res.text)) {
+				if (!entry.path.startsWith(basePath)) continue;
+				const key = entry.path.slice(basePath.length).replace(/\/$/, "");
+				if (!key || key === folder.replace(/\/$/, "")) continue;
+				if (entry.collection) queue.push(`${key}/`);
+				else if (key.startsWith(prefix)) out.push({ key, size: entry.size, lastModified: entry.lastModified });
+			}
+		}
+		return out;
+	}
+
+	async delete(key: string): Promise<void> {
+		await http(
+			{ url: this.url(key), method: "DELETE", headers: { Authorization: this.authHeader } },
+			t("storage.deleteFailed"),
+		);
 	}
 
 	async test(): Promise<void> {
