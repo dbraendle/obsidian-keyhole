@@ -65,11 +65,13 @@ export default class KeyholePlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.workspace.on("file-menu", (menu, file) => {
-				if (!(file instanceof TFile) || file.extension !== "md") return;
+				if (!(file instanceof TFile) || file.extension !== "md" || !migrator.hasLocalAttachments(file)) return;
 				menu.addItem((item) =>
 					item
 						.setTitle("Move attachments to Keyhole")
 						.setIcon("cloud-upload")
+						// Next to "Rename" and "Move file to…", not at the very bottom.
+						.setSection("action")
 						.onClick(() => void migrator.moveNote(file)),
 				);
 			}),
