@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- PDF box in notes is a little lower (65 % of the window instead of 70 %).
+
 ## 0.4.2
 
 - PDFs and other embeds always fit the note width (on iOS a PDF could grow to its pixel width and scroll sideways).
