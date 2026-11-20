@@ -1,5 +1,6 @@
 import { sha256Hex } from "../crypto";
-import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend } from "./backend";
+import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend, type StoredObject } from "./backend";
+import { parseS3List } from "./listing";
 import { presignUrl, signHeaders, type Credentials } from "./sigv4";
 import { t } from "../i18n";
 
@@ -72,6 +73,47 @@ export class S3Backend implements StorageBackend {
 
 	async streamUrl(key: string, ttlSeconds: number): Promise<string> {
 		return presignUrl(this.creds, "GET", this.objectUrl(key), ttlSeconds);
+	}
+
+	private bucketUrl(): URL {
+		const bucket = this.config.bucket.trim();
+		const basePath = this.base.pathname.replace(/\/+$/, "");
+		return this.config.pathStyle
+			? new URL(`${this.base.protocol}//${this.base.host}${basePath}/${bucket}`)
+			: new URL(`${this.base.protocol}//${bucket}.${this.base.host}${basePath}/`);
+	}
+
+	async list(prefix: string): Promise<StoredObject[]> {
+		const out: StoredObject[] = [];
+		let token: string | null = null;
+		do {
+			const url = this.bucketUrl();
+			url.searchParams.set("list-type", "2");
+			if (prefix) url.searchParams.set("prefix", prefix);
+			if (token) url.searchParams.set("continuation-token", token);
+			const headers = await signHeaders(this.creds, {
+				method: "GET",
+				url,
+				headers: {},
+				payloadHash: await sha256Hex(""),
+			});
+			const res = await http({ url: url.toString(), method: "GET", headers }, t("storage.listFailed"));
+			const page = parseS3List(res.text);
+			out.push(...page.objects);
+			token = page.next;
+		} while (token);
+		return out;
+	}
+
+	async delete(key: string): Promise<void> {
+		const url = this.objectUrl(key);
+		const headers = await signHeaders(this.creds, {
+			method: "DELETE",
+			url,
+			headers: {},
+			payloadHash: await sha256Hex(""),
+		});
+		await http({ url: url.toString(), method: "DELETE", headers }, t("storage.deleteFailed"));
 	}
 
 	async test(): Promise<void> {

@@ -15,8 +15,15 @@ export function initLanguage(): void {
 	current = languages[code] ?? languages[code.split("-")[0] ?? ""] ?? en;
 }
 
-/** Translated text with {placeholders} filled in. */
+/**
+ * Translated text with {placeholders} filled in. Texts with a singular and a plural
+ * form are written "one form|other form"; {count} picks the form.
+ */
 export function t(key: TextKey, vars: Record<string, string | number> = {}): string {
-	const text = current[key] ?? en[key];
+	let text: string = current[key] ?? en[key];
+	if (text.includes("|") && typeof vars.count === "number") {
+		const [one, other] = text.split("|");
+		text = (vars.count === 1 ? one : other) ?? text;
+	}
 	return text.replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match));
 }

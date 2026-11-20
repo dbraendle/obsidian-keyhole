@@ -16,7 +16,7 @@ export const en = {
 	"notice.cacheCleared": "Keyhole: offline cache cleared.",
 	"notice.cacheClearFailed": "Keyhole: could not clear the cache ({error}).",
 	"notice.noKeyholeAttachments": "Keyhole: this note has no Keyhole attachments.",
-	"notice.downloading": "Keyhole: downloading {count} file(s)…",
+	"notice.downloading": "Keyhole: downloading 1 file…|Keyhole: downloading {count} files…",
 	"notice.offlineResult": "Keyhole: {cached} file(s) available offline",
 	"notice.offlineTooLarge": ", {count} larger than the cache limit",
 	"notice.offlineFailed": ", {count} failed",
@@ -37,18 +37,18 @@ export const en = {
 	"notice.testFailed": "Keyhole: {message}",
 
 	// Moving local attachments
-	"move.noneMatching": "Keyhole: {count} attachment(s) in this note do not match the upload settings (type or size).",
+	"move.noneMatching": "Keyhole: 1 attachment in this note does not match the upload settings (type or size).|Keyhole: {count} attachments in this note do not match the upload settings (type or size).",
 	"move.none": "Keyhole: this note has no local attachments.",
-	"move.start": "Keyhole: moving {count} attachment(s)…",
+	"move.start": "Keyhole: moving 1 attachment…|Keyhole: moving {count} attachments…",
 	"move.progress": "Keyhole: moving attachments… {done} of {count}",
-	"move.result": "Keyhole: moved {count} attachment(s), {before} → {after}.",
-	"move.trashed": "{count} local file(s) moved to the trash.",
-	"move.kept": "{count} kept because other notes still use them.",
+	"move.result": "Keyhole: moved 1 attachment, {before} → {after}.|Keyhole: moved {count} attachments, {before} → {after}.",
+	"move.trashed": "1 local file moved to the trash.|{count} local files moved to the trash.",
+	"move.kept": "1 kept because other notes still use it.|{count} kept because other notes still use them.",
 	"move.skipped": "{count} skipped (type or size).",
 	"move.failed": "Failed: {list}.",
 	"move.notRewritten": "Some links could not be rewritten; local files were kept.",
-	"move.missing": "{count} attachment(s) are not on this device (not synced yet?) and were left as they are.",
-	"move.onlyMissing": "Keyhole: {count} attachment(s) of this note are not on this device (not synced yet?). Try again later or on another device.",
+	"move.missing": "1 attachment is not on this device (not synced yet?) and was left as it is.|{count} attachments are not on this device (not synced yet?) and were left as they are.",
+	"move.onlyMissing": "Keyhole: 1 attachment of this note is not on this device (not synced yet?). Try again later or on another device.|Keyhole: {count} attachments of this note are not on this device (not synced yet?). Try again later or on another device.",
 
 	// Mobile toolbar prompt
 	"toolbar.title": "Add the upload button to the toolbar?",
@@ -71,6 +71,8 @@ export const en = {
 	"storage.secretHttp": "token or password",
 	"storage.uploadFailed": "Upload failed",
 	"storage.downloadFailed": "Download failed",
+	"storage.listFailed": "Listing files failed",
+	"storage.deleteFailed": "Deleting failed",
 	"storage.mkcolFailed": "Creating folder failed",
 	"storage.networkError": "{what}: network error ({error})",
 	"storage.status401": "not authorized (401) – check the credentials",
@@ -165,6 +167,64 @@ export const en = {
 		"Play large media directly from the storage with a short-lived signed link instead of downloading it first. Works with S3 and the Keyhole server.",
 	"settings.clearCache": "Clear cache",
 	"settings.clearCache.desc": "Removes all cached files from this device.",
+
+	// Commands (round 4)
+	"command.restoreNote": "Bring Keyhole files of the current note back into the vault",
+	"command.restoreVault": "Bring all Keyhole files back into the vault",
+	"command.cleanup": "Clean up files no note uses anymore",
+
+	// File actions
+	"files.open": "Open",
+	"files.copyLink": "Copy link",
+	"files.linkCopied": "Keyhole: link copied.",
+	"files.restore": "Bring back into the vault",
+	"files.delete": "Delete from storage…",
+	"files.restoring": "Keyhole: bringing files back into the vault…",
+	"files.restoringProgress": "Keyhole: bringing files back… note {done} of {count}",
+	"files.restored": "Keyhole: 1 file is a local attachment again. The copy in your storage was kept.|Keyhole: {count} files are local attachments again. The copies in your storage were kept.",
+	"files.restoredVault": "Keyhole: {files} file(s) in {notes} note(s) are local attachments again. The copies in your storage were kept.",
+	"files.noneInNote": "Keyhole: this note has no Keyhole files.",
+	"files.noneInVault": "Keyhole: no note in this vault uses Keyhole files.",
+	"files.restoreVault.title": "Bring all files back into the vault?",
+	"files.restoreVault.text":
+		"Keyhole downloads every file used in {count} note(s), saves them as normal attachments and rewrites the links. Your storage keeps its copies. This can take a while and makes your vault larger again.",
+	"files.restoreVault.confirm": "Bring them back",
+	"files.delete.title": "Delete from storage?",
+	"files.delete.text": "\"{name}\" will be deleted from your storage and its link removed from this note. This cannot be undone.",
+	"files.delete.others": "Careful: {count} other note(s) use this file too ({notes}); they will show an error afterwards.",
+	"files.delete.confirm": "Delete",
+	"files.deleted": "Keyhole: \"{name}\" deleted.",
+	"common.cancel": "Cancel",
+
+	// Clean-up
+	"cleanup.title": "Clean up storage",
+	"cleanup.searching": "Comparing your storage with the notes in this vault…",
+	"cleanup.summary": "In storage: {total} · used by notes in this vault: {used} · unused: {orphans}",
+	"cleanup.explain":
+		"Only notes in this vault are checked. Files uploaded in the last {days} days are hidden, because notes on other devices may not have synced yet.",
+	"cleanup.noPrefix":
+		"Your storage has no folder for this vault (see Key prefix). If other vaults or apps use the same storage, their files show up here as well – check carefully.",
+	"cleanup.includeRecent": "Also show files from the last {days} days",
+	"cleanup.nothing": "Nothing to clean up.",
+	"cleanup.selectAll": "Select all",
+	"cleanup.delete": "Delete 1 file ({size})|Delete {count} files ({size})",
+	"cleanup.confirm.title": "Delete these files?",
+	"cleanup.confirm.text": "{count} file(s) will be deleted from your storage. This cannot be undone.",
+	"cleanup.deleting": "Keyhole: deleting 1 file…|Keyhole: deleting {count} files…",
+	"cleanup.done": "Keyhole: 1 file deleted.|Keyhole: {count} files deleted.",
+
+	// Hint bar
+	"hint.text": "This note has 1 local attachment.|This note has {count} local attachments.",
+	"hint.move": "Move to Keyhole",
+	"hint.dismiss": "Hide",
+
+	// Settings (round 4)
+	"settings.suggestMove": "Suggest moving local attachments",
+	"settings.suggestMove.desc": "Shows a small bar at the top of notes that still have local attachments, for example photos shared into Obsidian from your phone.",
+	"settings.cleanup": "Clean up storage",
+	"settings.cleanup.desc": "Finds files in your storage that no note in this vault uses anymore and lets you delete them.",
+	"settings.restoreVault": "Bring all files back into the vault",
+	"settings.restoreVault.desc": "Your way out: turns every Keyhole file into a normal attachment again. Your storage keeps its copies.",
 } as const;
 
 export type TextKey = keyof typeof en;

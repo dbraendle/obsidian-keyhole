@@ -23,11 +23,21 @@ export class Migrator {
 
 	/** Cheap check from the metadata cache, used to show the menu entry only where it helps. */
 	hasLocalAttachments(note: TFile): boolean {
+		return this.countLocalAttachments(note) > 0;
+	}
+
+	/** Number of distinct local attachments embedded in the note that Keyhole would take. */
+	countLocalAttachments(note: TFile): number {
 		const { metadataCache } = this.ctx.app;
-		return (metadataCache.getFileCache(note)?.embeds ?? []).some((embed) => {
+		const settings = this.ctx.settings();
+		const paths = new Set<string>();
+		for (const embed of metadataCache.getFileCache(note)?.embeds ?? []) {
 			const file = metadataCache.getFirstLinkpathDest(getLinkpath(embed.link), note.path);
-			return file !== null && isAttachment(file.extension);
-		});
+			if (!file || !isAttachment(file.extension)) continue;
+			if (!shouldUpload({ name: file.name, type: mimeOf(file.name), size: file.stat.size }, settings)) continue;
+			paths.add(file.path);
+		}
+		return paths.size;
 	}
 
 	async moveNote(note: TFile): Promise<void> {

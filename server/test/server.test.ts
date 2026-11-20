@@ -89,3 +89,13 @@ test("signature verification refuses far-future expiry", () => {
 	const exp = now + 30 * 24 * 3600;
 	assert.equal(verifySignature([TOKEN], "GET", "k.png", exp, signKey(TOKEN, "GET", "k.png", exp), now), false);
 });
+
+test("lists files for the bearer token only", async () => {
+	await fetch(`${base}/f/list/a/one.txt`, { method: "PUT", headers: auth, body: "1" });
+	await fetch(`${base}/f/list/b/two.txt`, { method: "PUT", headers: auth, body: "22" });
+	assert.equal((await fetch(`${base}/f/?list=1`)).status, 401);
+	const res = await fetch(`${base}/f/?list=1&prefix=list/`, { headers: auth });
+	assert.equal(res.status, 200);
+	const files = (await res.json()) as { key: string; size: number }[];
+	assert.deepEqual(files.map((f) => `${f.key}:${f.size}`).sort(), ["list/a/one.txt:1", "list/b/two.txt:2"]);
+});

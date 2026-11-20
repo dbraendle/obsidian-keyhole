@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Right-click (long-press) menu on Keyhole files: open, copy link, download/share, bring back into the vault, delete from storage.
+- Plain links `[text](keyhole://…)` open the file in a viewer.
+- Bring Keyhole files back into the vault, per note or for the whole vault – your way out.
+- Clean up storage: lists files no note in this vault uses anymore; delete what you pick (files from the last 7 days hidden by default).
+- Hint bar on notes that still have local attachments, with a one-tap move.
+- Keyhole server: `GET /f/?list=1` lists stored files (bearer token only).
+- Proper singular/plural texts.
+
 ## 0.3.0
 
 - Interface in English and German, following Obsidian's language setting. More languages: add a file in `src/i18n/`.

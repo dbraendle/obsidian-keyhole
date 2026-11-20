@@ -11,6 +11,8 @@ import { S3Backend } from "./storage/s3";
 import { HttpBackend } from "./storage/webdav";
 import { Uploader } from "./upload";
 import { Migrator } from "./migrate";
+import { FileActions } from "./files";
+import { LocalAttachmentHint } from "./hint";
 import { initLanguage, t } from "./i18n";
 
 const MB = 1024 * 1024;
@@ -23,6 +25,8 @@ export default class KeyholePlugin extends Plugin {
 	private resolver!: Resolver;
 	private renderer!: Renderer;
 	private lastErrorNotice = 0;
+	files!: FileActions;
+	private hint: LocalAttachmentHint | null = null;
 
 	async onload(): Promise<void> {
 		initLanguage();
@@ -50,6 +54,47 @@ export default class KeyholePlugin extends Plugin {
 		});
 
 		const migrator = new Migrator({ app: this.app, settings: () => this.settings, uploader });
+
+		this.files = new FileActions({
+			app: this.app,
+			settings: () => this.settings,
+			backend: () => this.getBackend(),
+			resolver: this.resolver,
+			renderer: this.renderer,
+		});
+		const hint = new LocalAttachmentHint(this.app, migrator, () => this.settings);
+		this.hint = hint;
+		this.registerEvent(this.app.workspace.on("file-open", () => hint.update()));
+		this.registerEvent(this.app.workspace.on("layout-change", () => hint.update()));
+		this.registerEvent(
+			this.app.metadataCache.on("changed", (file) => {
+				if (file === this.app.workspace.getActiveFile()) hint.update();
+			}),
+		);
+
+		this.addCommand({
+			id: "restore-note",
+			name: t("command.restoreNote"),
+			icon: "hard-drive-download",
+			checkCallback: (checking) => {
+				const file = this.app.workspace.getActiveFile();
+				if (!file || file.extension !== "md") return false;
+				if (!checking) void this.files.restoreNote(file);
+				return true;
+			},
+		});
+		this.addCommand({
+			id: "restore-vault",
+			name: t("command.restoreVault"),
+			icon: "hard-drive-download",
+			callback: () => void this.files.restoreVault(),
+		});
+		this.addCommand({
+			id: "cleanup",
+			name: t("command.cleanup"),
+			icon: "brush-cleaning",
+			callback: () => this.files.cleanup(),
+		});
 
 		this.addSettingTab(new KeyholeSettingTab(this.app, this));
 
@@ -88,10 +133,13 @@ export default class KeyholePlugin extends Plugin {
 		this.app.workspace.onLayoutReady(() => {
 			this.renderer.observe(activeDocument);
 			this.applyDisplaySettings(activeDocument);
+			this.attachWindow(activeWindow);
+			hint.update();
 			this.registerEvent(
 				this.app.workspace.on("window-open", (_win, win) => {
 					this.renderer.observe(win.document);
 					this.applyDisplaySettings(win.document);
+					this.attachWindow(win);
 				}),
 			);
 			if (Platform.isMobile) this.offerMobileToolbar();
@@ -151,7 +199,43 @@ export default class KeyholePlugin extends Plugin {
 		});
 	}
 
+	/**
+	 * Per window: a context menu for Keyhole files, and opening keyhole:// links
+	 * (Obsidian hands external links to window.open, which cannot load our scheme).
+	 */
+	private attachWindow(win: Window): void {
+		this.registerDomEvent(
+			win.document,
+			"contextmenu",
+			(evt) => {
+				const node = evt.target as Node | null;
+				const target = node?.instanceOf(Element) ? node.closest("img.keyhole-target, .keyhole-embed") : null;
+				const ref = parseUrl(target?.getAttribute("data-keyhole-src"));
+				if (!ref || ref.alias !== this.settings.alias) return;
+				evt.preventDefault();
+				evt.stopImmediatePropagation();
+				this.files.showMenu(evt, ref, this.app.workspace.getActiveFile());
+			},
+			{ capture: true },
+		);
+
+		const original = win.open.bind(win);
+		const patched = (url?: string | URL, target?: string, features?: string): WindowProxy | null => {
+			const ref = parseUrl(typeof url === "string" ? url : url?.toString());
+			if (ref) {
+				this.files.open(ref, this.app.workspace.getActiveFile());
+				return null;
+			}
+			return original(url, target, features);
+		};
+		win.open = patched;
+		this.register(() => {
+			win.open = original;
+		});
+	}
+
 	onunload(): void {
+		this.hint?.clear();
 		this.app.workspace.iterateAllLeaves((leaf) => leaf.view.containerEl.doc.body.removeClass("keyhole-limit-edit-height"));
 		this.renderer?.disconnect();
 		this.resolver?.reset();

@@ -14,7 +14,9 @@ Keep your attachments on your own private storage. Drop or paste an image, PDF, 
 - **Upload many files at once:** the *Upload files* button opens your system's picker with multi-select. On a phone that means the photo library, the camera or the Files app.
 - **Never lose a file:** if an upload fails (you are offline, say), the file is saved as a normal local attachment instead.
 
-> Status: early (0.1). Desktop is tested. Mobile support is built in but still needs verification on real devices. See [docs/CONCEPT.md](docs/CONCEPT.md).
+![A note whose photo, PDF and voice memo live in private storage](docs/images/02-note.png)
+
+> Status: beta. Tested on macOS and iPhone; Android still needs testing. Design notes: [docs/CONCEPT.md](docs/CONCEPT.md).
 
 ## Storage you can use
 
@@ -38,10 +40,12 @@ Manual install: download `main.js`, `manifest.json` and `styles.css` from the [l
 
 ## Setup
 
+![Keyhole settings](docs/images/03-settings.png)
+
 1. Enable Keyhole under *Settings → Community plugins*.
 2. Open **Settings → Keyhole** and choose your storage.
 3. Enter the endpoint, bucket and access key ID, or your server URL.
-4. Under **Secret access key** (or **Token or password**), create a keychain entry and paste the secret. Do this once on every device: secrets are not synced.
+4. Paste the **Secret access key** (or **Token or password**) and press **Save**. It is stored in this device's keychain, not in the vault, so do this once on every device.
 5. Click **Test connection**.
 
 ### Cloudflare R2 example
@@ -62,11 +66,29 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 
 ## Using it
 
-- **Drop or paste** files into a note. Keyhole takes files that match *Upload these files* and are under the size limit; everything else is left to Obsidian.
-- **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On mobile, add the command to the toolbar.
-- **Move local attachments of the current note to your storage** (command palette, or right-click a note → *Move attachments to Keyhole*) uploads the note's existing attachments, shrinks images, rewrites the embeds and moves the local files to the trash. Files that other notes still use are kept.
-- **Keep attachments of the current note on this device** downloads all of a note's files for offline use.
-- Links look like `![photo.jpg](keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg)`. You can resize images as usual: `![photo.jpg|300](…)`.
+- **Drop or paste** files into a note. Keyhole takes files that match *Upload these files* and are under the size limit; everything else is left to Obsidian. Images are shrunk on the device first (configurable).
+- **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On phones Keyhole offers to put this button next to the paper clip in the toolbar.
+- **Right-click a Keyhole file** (long-press on mobile) to open it, copy its link, download or share it, bring it back into the vault, or delete it from your storage.
+- **Links work too:** `[Booking](keyhole://…)` without the `!` is a plain link; tapping it opens the file.
+- Links look like `![photo.jpg](keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg)`. Resize images as usual: `![photo.jpg|300](…)`.
+
+### Moving existing attachments
+
+![Hint bar on a note with local attachments](docs/images/01-hint.png)
+
+Notes that still have local attachments show a small bar: **Move to Keyhole** uploads them (images shrunk), rewrites the embeds (sizes like `|300` are kept) and moves the local files to the trash. Files that other notes still use are kept. The same is available as a command and in the note's ⋯ menu.
+
+### Your way out
+
+**Bring all Keyhole files back into the vault** (settings or command palette) turns every Keyhole file into a normal attachment again. Your storage keeps its copies. You are never locked in.
+
+### Keeping the storage tidy
+
+Deleting a link does not delete the file. **Clean up storage** compares your storage with the notes of this vault and lists files no note uses anymore; you pick what to delete. Files from the last 7 days are hidden by default, because notes on other devices may not have synced yet.
+
+### Offline
+
+Files you have viewed stay on the device (size limit in the settings). **Keep attachments of the current note on this device** downloads all of a note's files ahead of a trip.
 
 ## Languages
 
@@ -82,8 +104,8 @@ Keyhole connects **only** to the storage you configure, to upload and download y
 
 ## Limitations
 
-- Without Keyhole installed, the embeds show as broken images. The links contain the file name, so nothing is lost.
-- Deleting a link does not delete the file from storage.
+- Without Keyhole installed, the embeds show as broken images. The links contain the file name, so nothing is lost, and *Bring all Keyhole files back* restores normal attachments at any time.
+- Obsidian Publish cannot show Keyhole files.
 - Plain WebDAV downloads media completely before playback. Use S3 or the Keyhole server for large videos.
 - On mobile, very large files can run into memory limits during upload. The default maximum is 100 MB.
 

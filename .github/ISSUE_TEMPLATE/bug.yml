@@ -1,0 +1,34 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Please never paste access keys, tokens or signed URLs here."
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: storage
+    attributes:
+      label: Storage
+      options: [S3-compatible (AWS, R2, B2, …), Keyhole server, WebDAV]
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Device and Obsidian version
+      placeholder: e.g. iPhone 15, iOS 26.1, Obsidian 1.15.1
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Keyhole version
+    validations:
+      required: true

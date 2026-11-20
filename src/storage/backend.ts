@@ -13,6 +13,16 @@ export interface StorageBackend {
 	streamUrl(key: string, ttlSeconds: number): Promise<string | null>;
 	/** Checks that uploading and downloading works. Throws with a readable message otherwise. */
 	test(): Promise<void>;
+	/** All stored objects whose key starts with prefix. */
+	list(prefix: string): Promise<StoredObject[]>;
+	delete(key: string): Promise<void>;
+}
+
+export interface StoredObject {
+	key: string;
+	size: number;
+	/** Milliseconds since the epoch; 0 if unknown. */
+	lastModified: number;
 }
 
 export class StorageError extends Error {

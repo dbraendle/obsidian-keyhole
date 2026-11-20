@@ -160,6 +160,11 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						control: { type: "toggle", key: "trashMovedAttachments" },
 					},
 					{
+						name: t("settings.suggestMove"),
+						desc: t("settings.suggestMove.desc"),
+						control: { type: "toggle", key: "suggestMove" },
+					},
+					{
 						name: t("settings.prefix"),
 						desc: t("settings.prefix.desc"),
 						control: { type: "text", key: "keyPrefix", placeholder: "my-vault/" },
@@ -216,6 +221,16 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						name: t("settings.stream"),
 						desc: t("settings.stream.desc"),
 						control: { type: "toggle", key: "streamLargeMedia" },
+					},
+					{
+						name: t("settings.cleanup"),
+						desc: t("settings.cleanup.desc"),
+						action: () => this.plugin.files.cleanup(),
+					},
+					{
+						name: t("settings.restoreVault"),
+						desc: t("settings.restoreVault.desc"),
+						action: () => void this.plugin.files.restoreVault(),
 					},
 					{
 						name: t("settings.clearCache"),

@@ -9,6 +9,7 @@
  */
 import { EMPTY_SHA256, presignUrl, signHeaders } from "../../src/storage/sigv4";
 import { sha256Hex } from "../../src/crypto";
+import { parseS3List } from "../../src/storage/listing";
 
 const env = (name: string): string => {
 	const value = process.env[name];
@@ -54,3 +55,13 @@ console.log("presigned get:", viaUrl.status, (await viaUrl.text()) === text ? "c
 const unsigned = await fetch(`${endpoint}${path}`);
 console.log("unsigned get (must be denied):", unsigned.status);
 if (!viaUrl.ok || unsigned.ok) process.exit(1);
+
+const listUrl = `/${bucket}?list-type=2&prefix=${encodeURIComponent("2026/11/")}`;
+const listed = await call("GET", listUrl);
+const listing = parseS3List(await listed.text());
+const found = listing.objects.some((o) => o.key === key);
+console.log("list:", listed.status, found ? "object listed" : "OBJECT MISSING");
+const deleted = await call("DELETE", path);
+const gone = await call("GET", path);
+console.log("delete:", deleted.status, "then get:", gone.status);
+if (!found || !deleted.ok || gone.ok) process.exit(1);
