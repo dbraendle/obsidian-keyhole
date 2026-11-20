@@ -7,6 +7,7 @@ import type { Resolver } from "./resolver";
 import type { KeyholeSettings } from "./settings";
 import type { StorageBackend } from "./storage/backend";
 import { messageOf } from "./render";
+import { optimizeImage } from "./image";
 
 export interface UploadContext {
 	app: App;
@@ -74,7 +75,11 @@ export class Uploader {
 			const placeholder = markdownEmbed(name, { alias: UPLOADING_ALIAS, key: id });
 			return { file, name, placeholder };
 		});
-		editor.replaceSelection(jobs.map((j) => j.placeholder).join("\n"));
+		// Each embed on its own line, and the cursor below the last one – never next to an image.
+		const cursor = editor.getCursor("from");
+		const before = editor.getLine(cursor.line).slice(0, cursor.ch);
+		const lead = before.trim().length > 0 ? "\n" : "";
+		editor.replaceSelection(`${lead}${jobs.map((j) => j.placeholder).join("\n")}\n`);
 
 		// A few at a time: on phones every upload holds the whole file in memory.
 		const progress = jobs.length > 1 ? new Notice(`Keyhole: uploading ${jobs.length} files…`, 0) : null;
@@ -90,10 +95,19 @@ export class Uploader {
 		}
 	}
 
-	private async uploadOne(file: File, name: string, placeholder: string, note: TFile): Promise<void> {
+	private async uploadOne(original: File, originalName: string, placeholder: string, note: TFile): Promise<void> {
 		const settings = this.ctx.settings();
 		let data: ArrayBuffer | null = null;
+		let file = original;
+		let name = originalName;
 		try {
+			if (settings.optimizeImages) {
+				const smaller = await this.optimize(original, originalName);
+				if (smaller) {
+					file = smaller;
+					name = smaller.name;
+				}
+			}
 			data = await file.arrayBuffer();
 			const hash = await sha256Hex(data);
 			const ref: KeyholeRef = {
@@ -111,6 +125,20 @@ export class Uploader {
 		} catch (err) {
 			await this.handleFailure(err, name, data, placeholder, note);
 		}
+	}
+
+	/** One image at a time: decoding a 12-megapixel photo takes a lot of memory on phones. */
+	private optimizing: Promise<unknown> = Promise.resolve();
+
+	private optimize(file: File, name: string): Promise<File | null> {
+		const settings = this.ctx.settings();
+		const run = this.optimizing.then(() =>
+			optimizeImage(file, name, { maxEdge: settings.imageMaxEdge, quality: settings.imageQuality / 100 }).catch(
+				() => null,
+			),
+		);
+		this.optimizing = run;
+		return run;
 	}
 
 	private async handleFailure(

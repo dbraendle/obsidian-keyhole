@@ -1,4 +1,5 @@
-import { MarkdownView, Notice, Plugin } from "obsidian";
+import { MarkdownView, Modal, Notice, Platform, Plugin, Setting, type App } from "obsidian";
+import { isPlacedAfterAttach, placeAfterAttach } from "./toolbar";
 import { FileCache } from "./cache";
 import { parseUrl, type KeyholeRef } from "./link";
 import { Renderer, messageOf } from "./render";
@@ -56,6 +57,7 @@ export default class KeyholePlugin extends Plugin {
 		this.app.workspace.onLayoutReady(() => {
 			this.renderer.observe(activeDocument);
 			this.registerEvent(this.app.workspace.on("window-open", (_win, win) => this.renderer.observe(win.document)));
+			if (Platform.isMobile) this.offerMobileToolbar();
 		});
 
 		this.addCommand({
@@ -205,11 +207,77 @@ export default class KeyholePlugin extends Plugin {
 		window.setTimeout(() => notice.hide(), 6000);
 	}
 
+	private coreConfig(): { get(key: string): unknown; set(key: string, value: unknown): void } {
+		// Not part of the public API: Vault#getConfig/setConfig hold the core settings.
+		const vault = this.app.vault as unknown as {
+			getConfig(key: string): unknown;
+			setConfig(key: string, value: unknown): void;
+		};
+		return { get: (key) => vault.getConfig(key), set: (key, value) => vault.setConfig(key, value) };
+	}
+
+	private toolbarCommands(): string[] {
+		const value = this.coreConfig().get("mobileToolbarCommands");
+		return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+	}
+
+	/** Puts the upload button right after the paper clip in the mobile toolbar. */
+	addToMobileToolbar(): void {
+		this.coreConfig().set("mobileToolbarCommands", placeAfterAttach(this.toolbarCommands()));
+		new Notice("Keyhole: upload button added to the mobile toolbar, next to the paper clip.");
+	}
+
+	/** Asks once (per vault, synced) whether to place the upload button in the mobile toolbar. */
+	private offerMobileToolbar(): void {
+		if (this.settings.toolbarPrompted || isPlacedAfterAttach(this.toolbarCommands())) return;
+		new ConfirmModal(
+			this.app,
+			"Add the upload button to the toolbar?",
+			"Keyhole can put its upload button right next to the paper clip in the toolbar above the keyboard. With it you can pick several photos or files at once.",
+			"Add button",
+			() => this.addToMobileToolbar(),
+		).open();
+		this.settings.toolbarPrompted = true;
+		void this.saveData(this.settings);
+	}
+
 	/** Rendering errors can come in bursts (one per embed); show at most one notice every few seconds. */
 	private reportError(message: string): void {
 		const now = Date.now();
 		if (now - this.lastErrorNotice < 5000) return;
 		this.lastErrorNotice = now;
 		new Notice(`Keyhole: ${message}`);
+	}
+}
+
+class ConfirmModal extends Modal {
+	constructor(
+		app: App,
+		private readonly heading: string,
+		private readonly text: string,
+		private readonly confirmText: string,
+		private readonly onConfirm: () => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.setTitle(this.heading);
+		this.contentEl.createEl("p", { text: this.text });
+		new Setting(this.contentEl)
+			.addButton((b) => b.setButtonText("Not now").onClick(() => this.close()))
+			.addButton((b) =>
+				b
+					.setButtonText(this.confirmText)
+					.setCta()
+					.onClick(() => {
+						this.onConfirm();
+						this.close();
+					}),
+			);
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
 	}
 }

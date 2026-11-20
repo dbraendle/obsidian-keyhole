@@ -26,6 +26,10 @@ export interface KeyholeSettings {
 
 	uploadScope: UploadScope;
 	maxUploadMB: number;
+	optimizeImages: boolean;
+	imageMaxEdge: number;
+	imageQuality: number;
+	toolbarPrompted: boolean;
 	fallbackToLocal: boolean;
 
 	cacheEnabled: boolean;
@@ -53,6 +57,10 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 
 	uploadScope: "all",
 	maxUploadMB: 100,
+	optimizeImages: true,
+	imageMaxEdge: 2560,
+	imageQuality: 85,
+	toolbarPrompted: false,
 	fallbackToLocal: true,
 
 	cacheEnabled: true,

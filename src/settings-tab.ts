@@ -122,6 +122,28 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						},
 					},
 					{
+						name: "Shrink images before upload",
+						desc: "Resizes and re-encodes photos and screenshots on this device (WebP or JPEG). A 9 MB phone screenshot becomes a few hundred KB. Also removes location data. GIF and SVG stay as they are.",
+						control: { type: "toggle", key: "optimizeImages" },
+					},
+					{
+						name: "Longest image edge (pixels)",
+						visible: () => s.optimizeImages,
+						control: { type: "number", key: "imageMaxEdge", min: 640, max: 8192 },
+					},
+					{
+						name: "Image quality (%)",
+						visible: () => s.optimizeImages,
+						control: { type: "number", key: "imageQuality", min: 50, max: 100 },
+					},
+					{
+						name: "Upload button in the mobile toolbar",
+						desc: "Puts the upload button right after the attachment (paper clip) button in the toolbar above the keyboard on phones and tablets.",
+						action: () => {
+							this.plugin.addToMobileToolbar();
+						},
+					},
+					{
 						name: "Maximum upload size (MB)",
 						desc: "Larger files are left to Obsidian.",
 						control: { type: "number", key: "maxUploadMB", min: 1, max: 2048 },

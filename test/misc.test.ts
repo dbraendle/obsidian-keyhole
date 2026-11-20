@@ -72,3 +72,27 @@ describe("runLimited", () => {
 		expect(done.sort()).toEqual([1, 2, 3, 4, 5, 6, 7]);
 	});
 });
+
+describe("mobile toolbar", () => {
+	it("places the upload button after the paper clip", async () => {
+		const { placeAfterAttach, isPlacedAfterAttach } = await import("../src/toolbar");
+		const base = ["editor:undo", "editor:attach-file", "editor:set-heading", "keyhole:upload-files"];
+		const placed = placeAfterAttach(base);
+		expect(placed).toEqual(["editor:undo", "editor:attach-file", "keyhole:upload-files", "editor:set-heading"]);
+		expect(isPlacedAfterAttach(base)).toBe(false);
+		expect(isPlacedAfterAttach(placed)).toBe(true);
+		expect(placeAfterAttach(["editor:undo"])).toEqual(["keyhole:upload-files", "editor:undo"]);
+	});
+});
+
+describe("image sizing", () => {
+	it("fits the longest edge", async () => {
+		const { fitWithin, renamed, canOptimize } = await import("../src/image");
+		expect(fitWithin(1179, 2556, 2560)).toEqual({ width: 1179, height: 2556 });
+		expect(fitWithin(4032, 3024, 2560)).toEqual({ width: 2560, height: 1920 });
+		expect(renamed("IMG_6271.PNG", "webp")).toBe("IMG_6271.webp");
+		expect(canOptimize("a.gif")).toBe(false);
+		expect(canOptimize("a.svg")).toBe(false);
+		expect(canOptimize("IMG_1.HEIC")).toBe(true);
+	});
+});
