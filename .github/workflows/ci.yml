@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+      - name: Release files are complete
+        run: test -s main.js && test -s manifest.json && test -s styles.css
+
+  s3-smoke:
+    # SigV4 against a real S3-compatible server (throwaway SeaweedFS, test credentials only).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start SeaweedFS
+        run: |
+          docker run -d --name s3 -p 8333:8333 -v "$PWD/test/integration:/cfg:ro" \
+            chrislusf/seaweedfs:4.54 server -s3 -s3.config=/cfg/seaweedfs-s3.json
+          for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:8333/ && break; sleep 1; done
+      - run: pnpm smoke:s3
+        env:
+          S3_ENDPOINT: http://127.0.0.1:8333
+          S3_BUCKET: keyhole-smoke
+          S3_ACCESS_KEY_ID: KEYHOLETESTKEY
+          S3_SECRET_ACCESS_KEY: keyhole-test-secret-1234567890
+
+  server-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build server image and check health
+        run: |
+          docker build -t keyhole-server:ci server
+          docker run -d --name ks -p 8080:8080 -e KEYHOLE_TOKENS="$(openssl rand -hex 32)" keyhole-server:ci
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8080/health && exit 0; sleep 1; done
+          docker logs ks; exit 1

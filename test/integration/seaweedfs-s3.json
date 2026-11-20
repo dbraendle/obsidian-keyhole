@@ -1,0 +1,1 @@
+{"identities":[{"name":"keyhole","credentials":[{"accessKey":"KEYHOLETESTKEY","secretKey":"keyhole-test-secret-1234567890"}],"actions":["Admin","Read","Write","List","Tagging"]}]}

@@ -1,0 +1,102 @@
+/* Keyhole: private remote attachments */
+
+.keyhole-hidden {
+	display: none !important;
+}
+
+img.keyhole-loading {
+	min-width: 48px;
+	min-height: 48px;
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	animation: keyhole-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes keyhole-pulse {
+	50% {
+		opacity: 0.5;
+	}
+}
+
+/* Live Preview wraps embeds in an inline-flex wrapper, which collapses audio and cards. */
+.image-wrapper.keyhole-parent,
+.image-embed.keyhole-parent {
+	display: block;
+}
+
+.keyhole-embed {
+	max-width: 100%;
+	margin: var(--size-4-1) 0;
+}
+
+.keyhole-embed video,
+.keyhole-embed audio {
+	display: block;
+	max-width: 100%;
+}
+
+.keyhole-embed audio {
+	width: 100%;
+}
+
+.keyhole-status,
+.keyhole-file,
+.keyhole-pdf-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	font-size: var(--font-ui-small);
+}
+
+.keyhole-status-error {
+	color: var(--text-error);
+}
+
+.keyhole-status-uploading {
+	color: var(--text-muted);
+}
+
+.keyhole-file-name {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.keyhole-pdf {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+}
+
+.keyhole-pdf .keyhole-pdf-header {
+	border: none;
+	border-radius: 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.keyhole-pdf-pages {
+	max-height: 70vh;
+	overflow-y: auto;
+	background: var(--background-secondary-alt);
+}
+
+.keyhole-pdf-page {
+	display: block;
+	width: 100%;
+	min-height: 200px;
+	margin-bottom: var(--size-4-2);
+	background: white;
+}
+
+.keyhole-file-input {
+	position: fixed;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+}

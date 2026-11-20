@@ -1,0 +1,25 @@
+# Updates are proposed as pull requests; nothing merges without review.
+# The cooldown keeps freshly published (possibly compromised) versions out.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      dev-dependencies:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: docker
+    directory: /server
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

@@ -1,0 +1,200 @@
+import { Notice, PluginSettingTab, type App, type SettingDefinitionItem } from "obsidian";
+import type KeyholePlugin from "./main";
+
+export class KeyholeSettingTab extends PluginSettingTab {
+	constructor(
+		app: App,
+		private readonly plugin: KeyholePlugin,
+	) {
+		super(app, plugin);
+	}
+
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		await super.setControlValue(key, value);
+		this.plugin.onSettingsChanged();
+		this.refreshDomState();
+	}
+
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		const s = this.plugin.settings;
+		const isS3 = () => s.storageType === "s3";
+		const isHttp = () => s.storageType !== "s3";
+
+		return [
+			{
+				type: "group",
+				heading: "Storage",
+				items: [
+					{
+						name: "Storage type",
+						desc: "Where attachments are stored. All options keep files private: nothing is publicly readable.",
+						control: {
+							type: "dropdown",
+							key: "storageType",
+							options: {
+								s3: "S3-compatible (AWS S3, Cloudflare R2, Backblaze B2, MinIO, Garage …)",
+								keyhole: "Keyhole server",
+								webdav: "WebDAV (Nextcloud, Synology, rclone …)",
+							},
+						},
+					},
+					{
+						name: "Endpoint",
+						desc: "For example https://<account>.r2.cloudflarestorage.com or https://s3.eu-central-1.amazonaws.com",
+						visible: isS3,
+						control: { type: "text", key: "s3Endpoint", placeholder: "https://" },
+					},
+					{
+						name: "Region",
+						desc: "Use auto for Cloudflare R2.",
+						visible: isS3,
+						control: { type: "text", key: "s3Region", placeholder: "auto" },
+					},
+					{
+						name: "Bucket",
+						desc: "Keep the bucket private. Keyhole never needs public access.",
+						visible: isS3,
+						control: { type: "text", key: "s3Bucket" },
+					},
+					{
+						name: "Path-style URLs",
+						desc: "Needed for MinIO and most self-hosted servers. Turn off only if your provider requires virtual-hosted URLs.",
+						visible: isS3,
+						control: { type: "toggle", key: "s3PathStyle" },
+					},
+					{
+						name: "Access key ID",
+						visible: isS3,
+						control: { type: "text", key: "s3AccessKeyId" },
+					},
+					{
+						name: "Secret access key",
+						desc: "Stored in this device's keychain, never in your vault. Set it up once on every device.",
+						visible: isS3,
+						control: { type: "secret", key: "s3SecretKeyRef" },
+					},
+					{
+						name: "Server URL",
+						desc: "Base URL that files are stored under, for example https://files.example.com/f/",
+						visible: isHttp,
+						control: { type: "text", key: "httpUrl", placeholder: "https://" },
+					},
+					{
+						name: "Authentication",
+						visible: () => s.storageType === "webdav",
+						control: {
+							type: "dropdown",
+							key: "httpAuth",
+							options: { bearer: "Bearer token", basic: "Username and password" },
+						},
+					},
+					{
+						name: "Username",
+						visible: () => s.storageType === "webdav" && s.httpAuth === "basic",
+						control: { type: "text", key: "httpUsername" },
+					},
+					{
+						name: "Token or password",
+						desc: "Stored in this device's keychain, never in your vault. Set it up once on every device.",
+						visible: isHttp,
+						control: { type: "secret", key: "httpSecretRef" },
+					},
+					{
+						name: "Test connection",
+						desc: "Uploads and reads back a small test file.",
+						action: () => void this.testConnection(),
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Uploads",
+				items: [
+					{
+						name: "Upload these files",
+						desc: "Files dropped or pasted into a note that match go to your storage; everything else is handled by Obsidian as usual.",
+						control: {
+							type: "dropdown",
+							key: "uploadScope",
+							options: {
+								all: "All files",
+								media: "Images, audio, video and PDF",
+								images: "Images only",
+							},
+						},
+					},
+					{
+						name: "Maximum upload size (MB)",
+						desc: "Larger files are left to Obsidian.",
+						control: { type: "number", key: "maxUploadMB", min: 1, max: 2048 },
+					},
+					{
+						name: "Keep a local copy if the upload fails",
+						desc: "When you are offline or the storage is unreachable, the file is saved as a normal attachment instead of being lost.",
+						control: { type: "toggle", key: "fallbackToLocal" },
+					},
+					{
+						name: "Key prefix",
+						desc: "Optional folder in the storage, for example the vault name. Changing it only affects new uploads.",
+						control: { type: "text", key: "keyPrefix", placeholder: "my-vault/" },
+					},
+					{
+						name: "Storage name in links",
+						desc: "Links look like keyhole://main/… Only change this before your first upload.",
+						control: {
+							type: "text",
+							key: "alias",
+							validate: (v) =>
+								/^[a-z0-9][a-z0-9-]{0,31}$/.test(v) ? undefined : "Lowercase letters, digits and dashes only.",
+						},
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Offline cache",
+				items: [
+					{
+						name: "Keep viewed files on this device",
+						desc: "Files you have viewed stay available offline. The cache lives on this device only and is not synced.",
+						control: { type: "toggle", key: "cacheEnabled" },
+					},
+					{
+						name: "Cache size (MB)",
+						desc: "Least recently viewed files are removed first.",
+						visible: () => s.cacheEnabled,
+						control: { type: "number", key: "cacheMaxMB", min: 10, max: 20000 },
+					},
+					{
+						name: "Largest file to cache (MB)",
+						visible: () => s.cacheEnabled,
+						control: { type: "number", key: "cacheMaxFileMB", min: 1, max: 2048 },
+					},
+					{
+						name: "Stream large audio and video",
+						desc: "Play large media directly from the storage with a short-lived signed link instead of downloading it first. Works with S3 and the Keyhole server.",
+						control: { type: "toggle", key: "streamLargeMedia" },
+					},
+					{
+						name: "Clear cache",
+						desc: "Removes all cached files from this device.",
+						action: () => void this.plugin.clearCache(),
+					},
+				],
+			},
+		];
+	}
+
+	private async testConnection(): Promise<void> {
+		const notice = new Notice("Keyhole: testing connection…", 0);
+		try {
+			const backend = this.plugin.createBackend();
+			await backend.test();
+			notice.setMessage("Keyhole: connection works.");
+		} catch (err) {
+			notice.setMessage(`Keyhole: ${err instanceof Error ? err.message : "connection failed"}`);
+		} finally {
+			window.setTimeout(() => notice.hide(), 6000);
+		}
+	}
+}

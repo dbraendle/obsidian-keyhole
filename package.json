@@ -1,0 +1,40 @@
+{
+  "name": "obsidian-keyhole",
+  "version": "0.1.0",
+  "description": "Keep attachments on your own private storage (S3-compatible or your own server) and view them in your notes with credentials that never leave the device.",
+  "main": "main.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "pnpm typecheck && node esbuild.config.mjs production",
+    "lint": "eslint .",
+    "test": "vitest run && node --test \"server/test/**/*.test.ts\"",
+    "check": "pnpm lint && pnpm test && pnpm build",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test && tsc --noEmit -p server",
+    "smoke:s3": "esbuild test/integration/s3-smoke.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/s3-smoke.mjs --log-level=warning && node node_modules/.cache/s3-smoke.mjs"
+  },
+  "keywords": [
+    "obsidian-plugin",
+    "attachments",
+    "s3",
+    "webdav",
+    "privacy"
+  ],
+  "author": "Dennis Brändle",
+  "license": "MIT",
+  "packageManager": "pnpm@12.18.0",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "esbuild": "0.28.2",
+    "eslint": "^10.15.0",
+    "eslint-plugin-obsidianmd": "^0.6.0",
+    "globals": "^17.14.0",
+    "obsidian": "1.14.4",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
+  }
+}

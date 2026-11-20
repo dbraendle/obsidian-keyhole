@@ -1,0 +1,13 @@
+{
+  "name": "keyhole-server",
+  "version": "0.1.0",
+  "description": "Minimal private file store for the Keyhole Obsidian plugin.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=24.2" },
+  "scripts": {
+    "start": "node src/server.ts",
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}
