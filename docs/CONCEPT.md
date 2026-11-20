@@ -106,4 +106,4 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 
 - Follows the plugin guidelines: id `keyhole`, `isDesktopOnly: false`, no Node or Electron APIs, `requestUrl` only, no telemetry, eslint-plugin-obsidianmd clean.
 - The README discloses network use and the need for a storage account.
-- Releases are tag-triggered and wait behind a protected `release` environment, so nothing ships without the maintainer's approval.
+- Changes reach `main` only through pull requests with green CI. A version bump on `main` publishes the release automatically.
