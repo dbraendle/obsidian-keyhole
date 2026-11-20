@@ -20,6 +20,15 @@ export interface MigrateContext {
 export class Migrator {
 	constructor(private readonly ctx: MigrateContext) {}
 
+	/** Cheap check from the metadata cache, used to show the menu entry only where it helps. */
+	hasLocalAttachments(note: TFile): boolean {
+		const { metadataCache } = this.ctx.app;
+		return (metadataCache.getFileCache(note)?.embeds ?? []).some((embed) => {
+			const file = metadataCache.getFirstLinkpathDest(getLinkpath(embed.link), note.path);
+			return file !== null && isAttachment(file.extension);
+		});
+	}
+
 	async moveNote(note: TFile): Promise<void> {
 		const { app } = this.ctx;
 		const settings = this.ctx.settings();
