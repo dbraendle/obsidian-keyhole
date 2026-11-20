@@ -15,6 +15,7 @@ const SELECTOR = 'img[src^="keyhole:" i]';
  */
 export class Renderer {
 	private readonly observers: MutationObserver[] = [];
+	private readonly observedDocs = new Set<Document>();
 	private storeAlias = "main";
 
 	constructor(
@@ -42,12 +43,30 @@ export class Renderer {
 		});
 		observer.observe(doc.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["src"] });
 		this.observers.push(observer);
+		this.observedDocs.add(doc);
 		this.processTree(doc.body);
 	}
 
 	disconnect(): void {
 		for (const observer of this.observers) observer.disconnect();
 		this.observers.length = 0;
+		this.observedDocs.clear();
+	}
+
+	/** Retries every embed that is showing an error, e.g. after the credentials were fixed. */
+	retryFailed(): void {
+		for (const observer of this.observedDocs) {
+			observer.querySelectorAll(".keyhole-embed.keyhole-status-error").forEach((status) => {
+				const img = status.previousElementSibling;
+				if (!img?.instanceOf(HTMLImageElement)) return;
+				const src = img.dataset.keyholeSrc;
+				status.remove();
+				img.removeClass("keyhole-hidden");
+				delete img.dataset.keyholeRetried;
+				if (src) img.setAttribute("src", src);
+				this.processImage(img);
+			});
+		}
 	}
 
 	processTree(root: Element): void {

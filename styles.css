@@ -127,9 +127,9 @@ img[src^="keyhole:" i]:not([width]) {
 	max-width: 100%;
 }
 
-/* While editing, keep tall images (phone screenshots) from filling the whole screen. */
-.markdown-source-view.is-live-preview img.keyhole-target:not([width]):not([src^="keyhole:" i]) {
-	max-height: 50vh;
+/* While editing, keep tall images (phone screenshots) from filling the whole screen (setting). */
+body.keyhole-limit-edit-height .markdown-source-view.is-live-preview img.keyhole-target:not([width]):not([src^="keyhole:" i]) {
+	max-height: var(--keyhole-edit-max-height, 50vh);
 	width: auto;
 	max-width: 100%;
 }

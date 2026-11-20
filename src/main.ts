@@ -56,7 +56,13 @@ export default class KeyholePlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			this.renderer.observe(activeDocument);
-			this.registerEvent(this.app.workspace.on("window-open", (_win, win) => this.renderer.observe(win.document)));
+			this.applyDisplaySettings(activeDocument);
+			this.registerEvent(
+				this.app.workspace.on("window-open", (_win, win) => {
+					this.renderer.observe(win.document);
+					this.applyDisplaySettings(win.document);
+				}),
+			);
 			if (Platform.isMobile) this.offerMobileToolbar();
 		});
 
@@ -115,6 +121,7 @@ export default class KeyholePlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.app.workspace.iterateAllLeaves((leaf) => leaf.view.containerEl.doc.body.removeClass("keyhole-limit-edit-height"));
 		this.renderer?.disconnect();
 		this.resolver?.reset();
 		this.cache?.close();
@@ -130,6 +137,15 @@ export default class KeyholePlugin extends Plugin {
 		this.backend = null;
 		this.resolver.reset();
 		this.renderer.setAlias(this.settings.alias);
+		this.renderer.retryFailed();
+		this.app.workspace.iterateAllLeaves((leaf) => this.applyDisplaySettings(leaf.view.containerEl.doc));
+	}
+
+	/** Display options are CSS: a body class plus a custom property per window. */
+	private applyDisplaySettings(doc: Document): void {
+		const percent = Math.min(100, Math.max(10, Number(this.settings.editMaxHeightPercent) || 50));
+		doc.body.toggleClass("keyhole-limit-edit-height", this.settings.limitEditHeight);
+		doc.body.setCssProps({ "--keyhole-edit-max-height": `${percent}vh` });
 	}
 
 	getBackend(): StorageBackend {

@@ -172,6 +172,22 @@ export class KeyholeSettingTab extends PluginSettingTab {
 			},
 			{
 				type: "group",
+				heading: "Display",
+				items: [
+					{
+						name: "Limit image height while editing",
+						desc: "In Live Preview, tall images such as phone screenshots take at most part of the screen height, so writing around them stays easy. Wide images keep the full width. Reading view always shows images in full.",
+						control: { type: "toggle", key: "limitEditHeight" },
+					},
+					{
+						name: "Maximum height (% of the window)",
+						visible: () => s.limitEditHeight,
+						control: { type: "number", key: "editMaxHeightPercent", min: 10, max: 100 },
+					},
+				],
+			},
+			{
+				type: "group",
 				heading: "Offline cache",
 				items: [
 					{
