@@ -1,6 +1,6 @@
 {
   "name": "obsidian-keyhole",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Keep attachments on your own private storage (S3-compatible or your own server) and view them in your notes with credentials that never leave the device.",
   "main": "main.js",
   "type": "module",
