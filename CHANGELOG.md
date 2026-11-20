@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Move a note's local attachments to your storage (command and note context menu): uploads, shrinks images, rewrites embeds (sizes like `|300` are kept), trashes local files no other note uses.
+- Setting: remove local copies after moving (on by default).
+
 ## 0.1.0 – unreleased
 
 - Upload on paste and drop, plus an *Upload files* picker with multi-select (ribbon, command, editor menu).

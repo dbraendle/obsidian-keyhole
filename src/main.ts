@@ -1,4 +1,4 @@
-import { MarkdownView, Modal, Notice, Platform, Plugin, Setting, type App } from "obsidian";
+import { MarkdownView, Modal, Notice, Platform, Plugin, Setting, TFile, type App } from "obsidian";
 import { isPlacedAfterAttach, placeAfterAttach } from "./toolbar";
 import { FileCache } from "./cache";
 import { parseUrl, type KeyholeRef } from "./link";
@@ -10,6 +10,7 @@ import { StorageError, type StorageBackend } from "./storage/backend";
 import { S3Backend } from "./storage/s3";
 import { HttpBackend } from "./storage/webdav";
 import { Uploader } from "./upload";
+import { Migrator } from "./migrate";
 
 const MB = 1024 * 1024;
 const LINK_RE = /keyhole:\/\/[a-z0-9-]+\/[^\s)\]"'<>]+/gi;
@@ -46,7 +47,33 @@ export default class KeyholePlugin extends Plugin {
 			resolver: this.resolver,
 		});
 
+		const migrator = new Migrator({ app: this.app, settings: () => this.settings, uploader });
+
 		this.addSettingTab(new KeyholeSettingTab(this.app, this));
+
+		this.addCommand({
+			id: "move-note-attachments",
+			name: "Move local attachments of the current note to your storage",
+			icon: "cloud-upload",
+			checkCallback: (checking) => {
+				const file = this.app.workspace.getActiveFile();
+				if (!file || file.extension !== "md") return false;
+				if (!checking) void migrator.moveNote(file);
+				return true;
+			},
+		});
+
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu, file) => {
+				if (!(file instanceof TFile) || file.extension !== "md") return;
+				menu.addItem((item) =>
+					item
+						.setTitle("Move attachments to Keyhole")
+						.setIcon("cloud-upload")
+						.onClick(() => void migrator.moveNote(file)),
+				);
+			}),
+		);
 
 		this.registerEvent(this.app.workspace.on("editor-paste", (evt, editor, info) => uploader.handlePaste(evt, editor, info)));
 		this.registerEvent(this.app.workspace.on("editor-drop", (evt, editor, info) => uploader.handleDrop(evt, editor, info)));
