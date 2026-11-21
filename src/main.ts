@@ -303,6 +303,7 @@ export default class KeyholePlugin extends Plugin {
 		try {
 			await this.cache.clear();
 			this.resolver.reset();
+			this.renderer.rerenderAll();
 			new Notice(t("notice.cacheCleared"));
 		} catch (err) {
 			new Notice(t("notice.cacheClearFailed", { error: messageOf(err) }));

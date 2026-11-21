@@ -54,6 +54,25 @@ export class Renderer {
 		this.observedDocs.clear();
 	}
 
+	/**
+	 * Renders every Keyhole embed in the open notes again from scratch, e.g. after the
+	 * offline cache was cleared, so the files are fetched from storage once more.
+	 */
+	rerenderAll(): void {
+		for (const doc of this.observedDocs) {
+			doc.querySelectorAll<HTMLImageElement>("img.keyhole-target").forEach((img) => {
+				const src = img.dataset.keyholeSrc;
+				if (!src) return;
+				const next = img.nextElementSibling;
+				if (next?.instanceOf(HTMLElement) && next.hasClass("keyhole-embed")) next.remove();
+				img.removeClass("keyhole-hidden");
+				delete img.dataset.keyholeRetried;
+				// Setting src fires the MutationObserver, which renders the embed again.
+				img.setAttribute("src", src);
+			});
+		}
+	}
+
 	/** Retries every embed that is showing an error, e.g. after the credentials were fixed. */
 	retryFailed(): void {
 		for (const observer of this.observedDocs) {
