@@ -67,6 +67,8 @@ export default class KeyholePlugin extends Plugin {
 			backend: () => this.getBackend(),
 			resolver: this.resolver,
 			renderer: this.renderer,
+			uploader,
+			canEncrypt: () => this.settings.e2eEnabled && this.keyMatches,
 		});
 		const hint = new LocalAttachmentHint(this.app, migrator, () => this.settings);
 		this.hint = hint;
@@ -94,6 +96,12 @@ export default class KeyholePlugin extends Plugin {
 			name: t("command.restoreVault"),
 			icon: "hard-drive-download",
 			callback: () => void this.files.restoreVault(),
+		});
+		this.addCommand({
+			id: "encrypt-existing",
+			name: t("command.encryptExisting"),
+			icon: "lock",
+			callback: () => void this.files.encryptExisting(),
 		});
 		this.addCommand({
 			id: "cleanup",

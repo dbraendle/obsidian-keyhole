@@ -1,7 +1,9 @@
 import { Menu, Modal, Notice, Setting, TFile, type App } from "obsidian";
 import { t } from "./i18n";
-import { displayName, findLinks, formatUrl, isUploadKey, markdownEmbed, normalizePrefix, parseUrl, typeName, type KeyholeRef } from "./link";
-import { formatBytes } from "./migrate-rules";
+import { displayName, findLinks, formatUrl, isEncryptedKey, isUploadKey, markdownEmbed, normalizePrefix, parseUrl, typeName, type KeyholeRef } from "./link";
+import { findUrls, formatBytes, rewriteUrls } from "./migrate-rules";
+import { mimeOf } from "./mime";
+import type { Uploader } from "./upload";
 import { kindOf } from "./mime";
 import { messageOf, type Renderer } from "./render";
 import type { Resolver } from "./resolver";
@@ -14,6 +16,9 @@ export interface FilesContext {
 	backend: () => StorageBackend;
 	resolver: Resolver;
 	renderer: Renderer;
+	uploader: Uploader;
+	/** Encryption is on and this device has the vault's key. */
+	canEncrypt: () => boolean;
 }
 
 /** Files uploaded more recently than this are never offered for clean-up: other devices may not have synced the notes that use them yet. */
@@ -196,6 +201,81 @@ export class FileActions {
 
 	cleanup(): void {
 		new CleanupModal(this.ctx.app, this, this.ctx).open();
+	}
+
+	/** Notes and canvases that still link to unencrypted Keyhole files, with those links. */
+	async unencryptedLinks(): Promise<{ file: TFile; urls: string[] }[]> {
+		const { vault } = this.ctx.app;
+		const alias = this.ctx.settings().alias;
+		const out: { file: TFile; urls: string[] }[] = [];
+		for (const file of vault.getFiles()) {
+			if (file.extension !== "md" && file.extension !== "canvas") continue;
+			const text = await vault.cachedRead(file);
+			if (!text.includes("keyhole://")) continue;
+			const urls = findUrls(text).filter((url) => {
+				const ref = parseUrl(url);
+				return ref !== null && ref.alias === alias && !isEncryptedKey(ref.key);
+			});
+			if (urls.length) out.push({ file, urls });
+		}
+		return out;
+	}
+
+	/**
+	 * Encrypts the files that were uploaded before encryption was turned on: downloads
+	 * each one, uploads it again encrypted (as it is, no shrinking) and rewrites the links.
+	 * The old copies stay in the storage; "Clean up storage" lists them afterwards.
+	 */
+	async encryptExisting(): Promise<void> {
+		if (!this.ctx.canEncrypt()) {
+			new Notice(t("encrypt.notReady"), 8000);
+			return;
+		}
+		const found = await this.unencryptedLinks();
+		const total = new Set(found.flatMap((f) => f.urls.map((url) => parseUrl(url)?.key ?? ""))).size;
+		if (!total) {
+			new Notice(t("encrypt.none"));
+			return;
+		}
+		new ConfirmModal(this.ctx.app, t("encrypt.title"), t("encrypt.text", { count: total, notes: found.length }), t("encrypt.confirm"), async () => {
+			const notice = new Notice(t("encrypt.progress", { done: 0, count: total }), 0);
+			// One upload per stored file, however many notes link to it.
+			const done = new Map<string, KeyholeRef | null>();
+			const failed: string[] = [];
+			let rewritten = 0;
+			for (const { file, urls } of found) {
+				const map = new Map<string, string>();
+				for (const url of urls) {
+					const ref = parseUrl(url);
+					if (!ref) continue;
+					if (!done.has(ref.key)) {
+						try {
+							const blob = await this.ctx.resolver.blob(ref);
+							const name = displayName(ref);
+							const stored = await this.ctx.uploader.store(new File([blob], name, { type: mimeOf(name) }), name, false);
+							done.set(ref.key, stored.ref);
+						} catch (err) {
+							done.set(ref.key, null);
+							failed.push(`${displayName(ref)} (${messageOf(err)})`);
+						}
+						notice.setMessage(t("encrypt.progress", { done: done.size, count: total }));
+					}
+					const next = done.get(ref.key);
+					if (next) map.set(url, formatUrl(next));
+				}
+				if (!map.size) continue;
+				await this.ctx.app.vault.process(file, (text) => {
+					const result = rewriteUrls(text, map);
+					rewritten += result.replaced;
+					return result.text;
+				});
+			}
+			const encrypted = [...done.values()].filter(Boolean).length;
+			notice.setMessage(
+				t("encrypt.done", { count: encrypted, links: rewritten }) + (failed.length ? ` ${t("move.failed", { list: failed.join(", ") })}` : ""),
+			);
+			window.setTimeout(() => notice.hide(), 20000);
+		}).open();
 	}
 }
 

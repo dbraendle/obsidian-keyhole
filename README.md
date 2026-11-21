@@ -99,7 +99,7 @@ What you should know before you turn it on:
 
 - **There is no recovery.** If you lose the key, the encrypted files are gone. The key is kept in each device's keychain, never in your vault.
 - Encrypted audio and video cannot be streamed; they are downloaded completely before they play.
-- Files you uploaded before stay unencrypted and keep working. Only new uploads are encrypted.
+- Files you uploaded before stay unencrypted and keep working; only new uploads are encrypted. To encrypt the old ones too, run **Encrypt existing files** (in the settings or the command palette): it uploads them again encrypted and rewrites the links in your notes and canvases. The old unencrypted copies stay in your storage until you delete them with **Clean up storage**; do that once all your devices have synced.
 - The file name moves from the storage into the link in your note: `![photo.jpg](keyhole://main/2026/11/<id>.khe#photo.jpg)`. The part after `#` never leaves your vault.
 - Still visible to the provider: file sizes, upload times and how many files you have.
 - You can switch *Encrypt new uploads* off again at any time; encrypted files stay readable as long as the device has the key.
