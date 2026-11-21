@@ -19,8 +19,8 @@ export interface UploadContext {
 	settings: () => KeyholeSettings;
 	backend: () => StorageBackend;
 	resolver: Resolver;
-	/** The key to encrypt new uploads with, or null if encryption is off. Throws if it is on but the key is missing. */
-	encryptionKey: () => Uint8Array<ArrayBuffer> | null;
+	/** The key to encrypt new uploads with, or null if encryption is off. Rejects if it is on but this device has no key, or not the vault's key. */
+	encryptionKey: () => Promise<Uint8Array<ArrayBuffer> | null>;
 }
 
 export interface StoredFile {
@@ -137,7 +137,7 @@ export class Uploader {
 			}
 		}
 		const backend = this.ctx.backend();
-		const vaultKey = this.ctx.encryptionKey();
+		const vaultKey = await this.ctx.encryptionKey();
 		const safeName = safeFileName(name, extensionForMime(file.type));
 		// Large files go up in parts where the storage can do that, so they never
 		// have to fit into memory as a whole (phones run out of it).

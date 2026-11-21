@@ -191,23 +191,39 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						name: t("settings.e2e.setup"),
 						desc: t("settings.e2e.setup.desc"),
 						visible: () => !s.e2eFingerprint,
-						action: () =>
+						action: () => {
+							// Never replace a key that is already on this device: files may depend on it.
+							const existing = this.plugin.vaultKey();
+							if (existing) {
+								void this.plugin.setUpEncryption(existing).then(() => {
+									this.refreshDomState();
+									new Notice(t("notice.e2eAdopted"), 10000);
+								});
+								return;
+							}
 							new EncryptionSetupModal(this.app, async (key) => {
 								await this.plugin.setUpEncryption(key);
 								this.refreshDomState();
 								new Notice(t("notice.e2eOn"));
-							}).open(),
+							}).open();
+						},
+					},
+					{
+						// Encryption may be set up on another device whose settings have not arrived here yet.
+						name: t("settings.e2e.existing"),
+						visible: () => !s.e2eFingerprint,
+						render: (setting) => this.renderKeyEntry(setting, t("settings.e2e.existing.desc")),
 					},
 					{
 						name: t("settings.e2e.enabled"),
 						desc: t("settings.e2e.enabled.desc"),
-						visible: () => Boolean(s.e2eFingerprint) && this.plugin.vaultKey() !== null,
+						visible: () => Boolean(s.e2eFingerprint) && this.plugin.keyMatches,
 						control: { type: "toggle", key: "e2eEnabled" },
 					},
 					{
 						name: t("settings.e2e.show"),
 						desc: t("settings.e2e.show.desc"),
-						visible: () => Boolean(s.e2eFingerprint) && this.plugin.vaultKey() !== null,
+						visible: () => Boolean(s.e2eFingerprint) && this.plugin.keyMatches,
 						action: () => {
 							const text = this.plugin.vaultKeyText();
 							if (text) new EncryptionKeyModal(this.app, text).open();
@@ -215,8 +231,8 @@ export class KeyholeSettingTab extends PluginSettingTab {
 					},
 					{
 						name: t("settings.e2e.enter"),
-						visible: () => Boolean(s.e2eFingerprint) && this.plugin.vaultKey() === null,
-						render: (setting) => this.renderKeyEntry(setting),
+						visible: () => Boolean(s.e2eFingerprint) && !this.plugin.keyMatches,
+						render: (setting) => this.renderKeyEntry(setting, t("settings.e2e.enter.desc")),
 					},
 				],
 			},
@@ -329,8 +345,8 @@ export class KeyholeSettingTab extends PluginSettingTab {
 	}
 
 	/** On a device that does not have the vault's encryption key yet: paste it once. */
-	private renderKeyEntry(setting: Setting): void {
-		setting.setDesc(t("settings.e2e.enter.desc"));
+	private renderKeyEntry(setting: Setting, description: string): void {
+		setting.setDesc(description);
 		let value = "";
 		setting.addText((text) => {
 			text.inputEl.type = "password";

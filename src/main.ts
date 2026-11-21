@@ -34,6 +34,7 @@ export default class KeyholePlugin extends Plugin {
 		initLanguage();
 		await this.loadSettings();
 		this.adoptSecretBindings();
+		await this.refreshKeyState();
 
 		this.cache = new FileCache(`keyhole-cache/${this.app.vault.getName()}`);
 		this.resolver = new Resolver(
@@ -45,7 +46,7 @@ export default class KeyholePlugin extends Plugin {
 				cacheMaxFileBytes: this.settings.cacheMaxFileMB * MB,
 				streamLargeMedia: this.settings.streamLargeMedia,
 			}),
-			() => this.requireVaultKey(),
+			() => this.keyForReading(),
 		);
 		this.renderer = new Renderer(this.resolver, (message) => this.reportError(message));
 		this.renderer.setAlias(this.settings.alias);
@@ -55,7 +56,7 @@ export default class KeyholePlugin extends Plugin {
 			settings: () => this.settings,
 			backend: () => this.getBackend(),
 			resolver: this.resolver,
-			encryptionKey: () => (this.settings.e2eEnabled ? this.requireVaultKey() : null),
+			encryptionKey: () => this.keyForUploads(),
 		});
 
 		const migrator = new Migrator({ app: this.app, settings: () => this.settings, uploader });
@@ -344,15 +345,38 @@ export default class KeyholePlugin extends Plugin {
 		}
 	}
 
-	/** The vault's encryption key from this device's keychain, or null if it is not here. */
+	/** The encryption key in this device's keychain, or null if there is none. */
 	vaultKey(): Uint8Array<ArrayBuffer> | null {
 		const text = this.app.secretStorage.getSecret(E2E_KEY_ID);
 		return text ? importVaultKey(text) : null;
 	}
 
-	private requireVaultKey(): Uint8Array<ArrayBuffer> {
+	/**
+	 * Is the key on this device the one this vault was set up with? Settings sync and
+	 * keychains do not, so the two can disagree; the settings tab reads this.
+	 */
+	keyMatches = false;
+
+	async refreshKeyState(): Promise<void> {
+		const key = this.vaultKey();
+		this.keyMatches = key !== null && this.settings.e2eFingerprint !== "" && (await keyFingerprint(key)) === this.settings.e2eFingerprint;
+	}
+
+	/** For reading, any key on the device is tried: a file tells by itself whether the key fits. */
+	private keyForReading(): Promise<Uint8Array<ArrayBuffer>> {
+		const key = this.vaultKey();
+		return key ? Promise.resolve(key) : Promise.reject(new StorageError(t("e2e.noKey")));
+	}
+
+	/**
+	 * For writing, only the vault's own key will do. Encrypting with any other key would
+	 * produce files the other devices cannot read.
+	 */
+	private async keyForUploads(): Promise<Uint8Array<ArrayBuffer> | null> {
+		if (!this.settings.e2eEnabled) return null;
 		const key = this.vaultKey();
 		if (!key) throw new StorageError(t("e2e.noKey"));
+		if ((await keyFingerprint(key)) !== this.settings.e2eFingerprint) throw new StorageError(t("e2e.keyMismatch"));
 		return key;
 	}
 
@@ -362,23 +386,44 @@ export default class KeyholePlugin extends Plugin {
 		return key ? exportVaultKey(key) : null;
 	}
 
-	/** First set-up for this vault: keeps the key on this device and remembers its fingerprint in the settings. */
+	/**
+	 * Makes `key` the key of this vault: keeps it on this device and remembers its
+	 * fingerprint in the settings. Used for a new key and for a key brought from
+	 * another device before the settings arrived here.
+	 */
 	async setUpEncryption(key: Uint8Array<ArrayBuffer>): Promise<void> {
 		this.app.secretStorage.setSecret(E2E_KEY_ID, exportVaultKey(key));
 		this.settings.e2eFingerprint = await keyFingerprint(key);
 		this.settings.e2eEnabled = true;
 		await this.saveData(this.settings);
+		await this.refreshKeyState();
 		this.onSettingsChanged();
 	}
 
-	/** Another device: accepts the key only if it is the one this vault was set up with. */
+	/**
+	 * A key pasted on this device. If the vault has a key already, only that one is
+	 * accepted; if the vault has none yet (as far as this device knows), the pasted
+	 * key becomes the vault's key.
+	 */
 	async addVaultKey(text: string): Promise<"ok" | "invalid" | "other-key"> {
 		const key = importVaultKey(text);
 		if (!key) return "invalid";
+		if (!this.settings.e2eFingerprint) {
+			await this.setUpEncryption(key);
+			return "ok";
+		}
 		if ((await keyFingerprint(key)) !== this.settings.e2eFingerprint) return "other-key";
 		this.app.secretStorage.setSecret(E2E_KEY_ID, exportVaultKey(key));
+		await this.refreshKeyState();
 		this.onSettingsChanged();
 		return "ok";
+	}
+
+	/** Settings changed on disk, e.g. another device's settings arrived through sync. */
+	async onExternalSettingsChange(): Promise<void> {
+		await this.loadSettings();
+		await this.refreshKeyState();
+		this.onSettingsChanged();
 	}
 
 	async clearCache(): Promise<void> {

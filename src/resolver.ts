@@ -1,7 +1,9 @@
 import type { FileCache } from "./cache";
 import { decrypt, DecryptError } from "./e2e/format";
 import { t } from "./i18n";
-import { isEncryptedKey, typeName, type KeyholeRef } from "./link";
+import { sha256Hex } from "./crypto";
+import { objectId } from "./e2e/format";
+import { encryptedId, isEncryptedKey, typeName, type KeyholeRef } from "./link";
 import { mimeOf } from "./mime";
 import type { StorageBackend } from "./storage/backend";
 
@@ -30,21 +32,25 @@ export class Resolver {
 		private readonly getBackend: () => StorageBackend,
 		private readonly cache: FileCache,
 		private readonly options: () => ResolverOptions,
-		/** The vault's encryption key. Throws a readable error if this device does not have it. */
-		private readonly vaultKey: () => Uint8Array<ArrayBuffer>,
+		/** The vault's encryption key. Rejects with a readable error if this device does not have it. */
+		private readonly vaultKey: () => Promise<Uint8Array<ArrayBuffer>>,
 	) {}
 
 	/** Turns stored bytes into the file: decrypts them if the file is encrypted. */
 	private async open(ref: KeyholeRef, stored: ArrayBuffer): Promise<Blob> {
 		let data = stored;
 		if (isEncryptedKey(ref.key)) {
-			const key = this.vaultKey();
+			const key = await this.vaultKey();
 			try {
 				data = await decrypt(key, stored);
 			} catch (err) {
 				const message = err instanceof DecryptError && err.reason === "not-encrypted" ? t("e2e.notEncrypted") : t("e2e.wrongKey");
 				throw new Error(message, { cause: err });
 			}
+			// The name of an encrypted object is a keyed hash of its content. Checking it means
+			// the storage cannot hand out another (or an older) encrypted file under this name.
+			const id = encryptedId(ref.key);
+			if (id && (await objectId(key, await sha256Hex(data))) !== id) throw new Error(t("e2e.otherFile"));
 		}
 		return new Blob([data], { type: mimeOf(typeName(ref)) });
 	}
@@ -125,7 +131,13 @@ export class Resolver {
 		const opts = this.options();
 		if (opts.cacheEnabled) {
 			const cached = await this.cache.get(id).catch(() => null);
-			if (cached) return this.remember(id, await this.open(ref, await cached.arrayBuffer()));
+			if (cached) {
+				const opened = await this.open(ref, await cached.arrayBuffer()).catch(() => null);
+				if (opened) return this.remember(id, opened);
+				// A cached copy that cannot be opened is dropped and fetched again; if the
+				// fresh copy fails too (e.g. the key is missing), that error is reported.
+				await this.cache.delete(id).catch(() => undefined);
+			}
 		}
 		const data = await this.getBackend().get(ref.key);
 		if (opts.cacheEnabled && data.byteLength <= opts.cacheMaxFileBytes) {

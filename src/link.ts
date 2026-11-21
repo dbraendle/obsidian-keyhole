@@ -31,6 +31,11 @@ export function isEncryptedKey(key: string): boolean {
 	return key.endsWith(ENCRYPTED_SUFFIX);
 }
 
+/** The id in the key of an encrypted file (a keyed hash of its content), or null. */
+export function encryptedId(key: string): string | null {
+	return /(?:^|\/)([0-9a-f]{32})\.khe$/.exec(key)?.[1] ?? null;
+}
+
 /** The name that tells what kind of file this is: the real file name. */
 export function typeName(ref: KeyholeRef): string {
 	return ref.name ?? ref.key;
@@ -38,7 +43,7 @@ export function typeName(ref: KeyholeRef): string {
 
 const ALIAS_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const KEY_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
+const NAME_RE = /^[A-Za-z0-9_][A-Za-z0-9._-]{0,199}$/;
 
 export function isValidAlias(alias: string): boolean {
 	return ALIAS_RE.test(alias);

@@ -89,6 +89,12 @@ describe("encrypted files", () => {
 		expect(displayName(ref)).toBe("photo.jpg");
 	});
 
+	it("keep names that start with an underscore", () => {
+		for (const name of ["_DSC1234.JPG", "__init__.py", "a.b-c_d.tar.gz"]) {
+			expect(parseUrl(`keyhole://main/${key}#${name}`)).toEqual({ alias: "main", key, name });
+		}
+	});
+
 	it("ignore unsafe or missing names", () => {
 		expect(parseUrl(`keyhole://main/${key}`)).toEqual({ alias: "main", key });
 		expect(parseUrl(`keyhole://main/${key}#../../etc/passwd`)).toEqual({ alias: "main", key });

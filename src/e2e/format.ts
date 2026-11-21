@@ -45,8 +45,9 @@ export class DecryptError extends Error {
 	}
 }
 
-function bytes(data: ArrayBuffer | Uint8Array): Uint8Array<ArrayBuffer> {
-	return data instanceof Uint8Array ? new Uint8Array(data) : new Uint8Array(data);
+/** A view of the bytes; an ArrayBuffer is not copied. */
+function bytes(data: ArrayBuffer | Uint8Array): Uint8Array {
+	return data instanceof Uint8Array ? data : new Uint8Array(data);
 }
 
 export function generateVaultKey(): Uint8Array<ArrayBuffer> {
@@ -223,6 +224,8 @@ export async function decrypt(vaultKey: Uint8Array<ArrayBuffer>, data: ArrayBuff
 		} catch {
 			throw new DecryptError("wrong-key-or-damaged");
 		}
+		// Only an empty file ends in an empty chunk. Anything else that does was not written by Keyhole.
+		if (plain.byteLength === 0 && count > 1) throw new DecryptError("wrong-key-or-damaged");
 		out.set(new Uint8Array(plain), written);
 		written += plain.byteLength;
 	}

@@ -86,6 +86,17 @@ describe("encrypted file format", () => {
 		await expect(decrypt(key, header.buffer)).rejects.toBeInstanceOf(DecryptError);
 	});
 
+	it("refuses an empty chunk after full ones (only an empty file ends in one)", async () => {
+		const encryptor = await createEncryptor(key);
+		const full = new Uint8Array(await encryptor.chunk(0, data(CHUNK_BYTES).buffer, false));
+		const empty = new Uint8Array(await encryptor.chunk(1, new ArrayBuffer(0), true));
+		const file = new Uint8Array(HEADER_BYTES + full.length + empty.length);
+		file.set(encryptor.header, 0);
+		file.set(full, HEADER_BYTES);
+		file.set(empty, HEADER_BYTES + full.length);
+		await expect(decrypt(key, file.buffer)).rejects.toBeInstanceOf(DecryptError);
+	});
+
 	it("does not accept a chunk of one file in another", async () => {
 		const a = await sealed(key, data(100));
 		const b = await sealed(key, data(100));
