@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4
+
+- "Clear offline cache" also reloads the files in open notes, so they come fresh from storage right away.
+
 ## 0.4.3
 
 - PDF box in notes is a little lower (65 % of the window instead of 70 %).
