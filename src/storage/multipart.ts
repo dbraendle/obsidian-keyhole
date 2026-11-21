@@ -7,6 +7,7 @@
 import { sha256Hex } from "../crypto";
 import { tag } from "./listing";
 import { EMPTY_SHA256, signHeaders, type Credentials } from "./sigv4";
+import type { ByteSource } from "./source";
 
 /** Every part but the last must be at least 5 MiB; R2 also wants them equal in size. */
 export const PART_BYTES = 8 * 1024 * 1024;
@@ -49,14 +50,14 @@ export function completeBody(etags: string[]): string {
 }
 
 /**
- * Uploads `blob` to `objectUrl` in parts. If anything fails, the unfinished upload is
+ * Uploads `source` to `objectUrl` in parts. If anything fails, the unfinished upload is
  * aborted (best effort), so no orphaned parts are left to be paid for.
  */
 export async function multipartUpload(
 	send: Send,
 	creds: Credentials,
 	objectUrl: URL,
-	blob: Blob,
+	source: ByteSource,
 	contentType: string,
 	partBytes = PART_BYTES,
 ): Promise<void> {
@@ -82,10 +83,10 @@ export async function multipartUpload(
 	};
 
 	try {
-		const size = partSizeFor(blob.size, partBytes);
+		const size = partSizeFor(source.size, partBytes);
 		const etags: string[] = [];
-		for (let offset = 0; offset < blob.size; offset += size) {
-			const part = await blob.slice(offset, offset + size).arrayBuffer();
+		for (let offset = 0; offset < source.size; offset += size) {
+			const part = await source.read(offset, Math.min(offset + size, source.size));
 			const res = await signed("PUT", withUpload({ partNumber: String(etags.length + 1) }), {}, part);
 			const etag = header(res.headers, "etag");
 			if (!etag) throw new Error("The storage returned no ETag for an uploaded part");

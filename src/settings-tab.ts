@@ -1,4 +1,5 @@
-import { Notice, PluginSettingTab, type App, type Setting, type SettingDefinitionItem } from "obsidian";
+import { Modal, Notice, PluginSettingTab, Setting, type App, type SettingDefinitionItem } from "obsidian";
+import { exportVaultKey, generateVaultKey, importVaultKey } from "./e2e/format";
 import { t } from "./i18n";
 import type KeyholePlugin from "./main";
 import { bindingId, checkBinding, HTTP_SECRET_ID, S3_SECRET_ID } from "./secrets";
@@ -184,6 +185,43 @@ export class KeyholeSettingTab extends PluginSettingTab {
 			},
 			{
 				type: "group",
+				heading: t("settings.e2e"),
+				items: [
+					{
+						name: t("settings.e2e.setup"),
+						desc: t("settings.e2e.setup.desc"),
+						visible: () => !s.e2eFingerprint,
+						action: () =>
+							new EncryptionSetupModal(this.app, async (key) => {
+								await this.plugin.setUpEncryption(key);
+								this.refreshDomState();
+								new Notice(t("notice.e2eOn"));
+							}).open(),
+					},
+					{
+						name: t("settings.e2e.enabled"),
+						desc: t("settings.e2e.enabled.desc"),
+						visible: () => Boolean(s.e2eFingerprint) && this.plugin.vaultKey() !== null,
+						control: { type: "toggle", key: "e2eEnabled" },
+					},
+					{
+						name: t("settings.e2e.show"),
+						desc: t("settings.e2e.show.desc"),
+						visible: () => Boolean(s.e2eFingerprint) && this.plugin.vaultKey() !== null,
+						action: () => {
+							const text = this.plugin.vaultKeyText();
+							if (text) new EncryptionKeyModal(this.app, text).open();
+						},
+					},
+					{
+						name: t("settings.e2e.enter"),
+						visible: () => Boolean(s.e2eFingerprint) && this.plugin.vaultKey() === null,
+						render: (setting) => this.renderKeyEntry(setting),
+					},
+				],
+			},
+			{
+				type: "group",
 				heading: t("settings.display"),
 				items: [
 					{
@@ -290,6 +328,31 @@ export class KeyholeSettingTab extends PluginSettingTab {
 		);
 	}
 
+	/** On a device that does not have the vault's encryption key yet: paste it once. */
+	private renderKeyEntry(setting: Setting): void {
+		setting.setDesc(t("settings.e2e.enter.desc"));
+		let value = "";
+		setting.addText((text) => {
+			text.inputEl.type = "password";
+			text.inputEl.autocomplete = "off";
+			text.setPlaceholder("keyhole-key-v1:…").onChange((v) => (value = v.trim()));
+		});
+		setting.addButton((button) =>
+			button
+				.setButtonText(t("settings.secret.save"))
+				.setCta()
+				.onClick(async () => {
+					const result = await this.plugin.addVaultKey(value);
+					if (result === "ok") {
+						new Notice(t("notice.e2eKeyAdded"));
+						this.refreshDomState();
+					} else {
+						new Notice(t(result === "invalid" ? "notice.e2eKeyInvalid" : "notice.e2eKeyOther"), 8000);
+					}
+				}),
+		);
+	}
+
 	private async testConnection(): Promise<void> {
 		const notice = new Notice(t("notice.testing"), 0);
 		try {
@@ -302,4 +365,105 @@ export class KeyholeSettingTab extends PluginSettingTab {
 			window.setTimeout(() => notice.hide(), 6000);
 		}
 	}
+}
+
+/**
+ * First set-up of encryption. A lost key means lost files, so the key must be
+ * saved before anything is encrypted with it: the button stays off until the key
+ * was pasted back (from wherever it was saved) and the consequence was acknowledged.
+ */
+class EncryptionSetupModal extends Modal {
+	private readonly key = generateVaultKey();
+
+	constructor(
+		app: App,
+		private readonly onConfirm: (key: Uint8Array<ArrayBuffer>) => Promise<void>,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		const { contentEl } = this;
+		const text = exportVaultKey(this.key);
+		this.setTitle(t("e2e.setup.title"));
+		contentEl.createEl("p", { text: t("e2e.setup.intro") });
+		const list = contentEl.createEl("ul");
+		for (const key of ["e2e.setup.point.lost", "e2e.setup.point.devices", "e2e.setup.point.stream", "e2e.setup.point.existing"] as const) {
+			list.createEl("li", { text: t(key) });
+		}
+
+		contentEl.createEl("p", { cls: "keyhole-key-step", text: t("e2e.setup.step1") });
+		renderKey(contentEl, text);
+
+		contentEl.createEl("p", { cls: "keyhole-key-step", text: t("e2e.setup.step2") });
+		let pasted = "";
+		let acknowledged = false;
+		let confirm: HTMLButtonElement | null = null;
+		const update = () => {
+			const key = importVaultKey(pasted);
+			const matches = key !== null && exportVaultKey(key) === text;
+			if (confirm) confirm.disabled = !(matches && acknowledged);
+			status.setText(pasted && !matches ? t("e2e.setup.mismatch") : "");
+		};
+		new Setting(contentEl).setName(t("e2e.setup.paste")).addText((input) => {
+			input.inputEl.autocomplete = "off";
+			input.inputEl.addClass("keyhole-key-input");
+			input.setPlaceholder("keyhole-key-v1:…").onChange((v) => {
+				pasted = v;
+				update();
+			});
+		});
+		const status = contentEl.createEl("p", { cls: "keyhole-status-error" });
+		new Setting(contentEl).setName(t("e2e.setup.ack")).addToggle((toggle) =>
+			toggle.onChange((v) => {
+				acknowledged = v;
+				update();
+			}),
+		);
+		new Setting(contentEl)
+			.addButton((b) => b.setButtonText(t("common.cancel")).onClick(() => this.close()))
+			.addButton((b) => {
+				confirm = b.buttonEl;
+				b.setButtonText(t("e2e.setup.confirm"))
+					.setCta()
+					.onClick(async () => {
+						await this.onConfirm(this.key);
+						this.close();
+					});
+			});
+		update();
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+/** Shows the key again, e.g. to copy it to another device. */
+class EncryptionKeyModal extends Modal {
+	constructor(
+		app: App,
+		private readonly text: string,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.setTitle(t("settings.e2e.show"));
+		this.contentEl.createEl("p", { text: t("e2e.show.text") });
+		renderKey(this.contentEl, this.text);
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+function renderKey(parent: HTMLElement, text: string): void {
+	const box = parent.createDiv({ cls: "keyhole-key-box" });
+	box.createEl("code", { cls: "keyhole-key-text", text });
+	const copy = box.createEl("button", { text: t("e2e.copy") });
+	copy.addEventListener("click", () => {
+		void navigator.clipboard.writeText(text).then(() => new Notice(t("e2e.copied")));
+	});
 }

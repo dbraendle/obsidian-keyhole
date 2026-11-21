@@ -23,7 +23,8 @@
  * time and the object name, which is derived from the content with a keyed hash and
  * says nothing about the content to anyone without the key.
  */
-import { hmac, sha256, toHex } from "../crypto";
+import { hmac, toHex } from "../crypto";
+import type { ByteSource } from "../storage/source";
 
 export const MAGIC = new Uint8Array([0x4b, 0x48, 0x45, 0x31]); // "KHE1"
 export const SALT_BYTES = 16;
@@ -108,12 +109,8 @@ export async function keyFingerprint(vaultKey: Uint8Array<ArrayBuffer>): Promise
  * the same name (so uploading it twice stores it once), but without the key nobody
  * can tell from the name what the file is, or test a guess.
  */
-export async function objectId(vaultKey: Uint8Array<ArrayBuffer>, plaintextSha256: ArrayBuffer): Promise<string> {
-	return toHex(await hmac(await nameKey(vaultKey), plaintextSha256)).slice(0, 32);
-}
-
-export async function objectIdOf(vaultKey: Uint8Array<ArrayBuffer>, plaintext: ArrayBuffer): Promise<string> {
-	return objectId(vaultKey, await sha256(plaintext));
+export async function objectId(vaultKey: Uint8Array<ArrayBuffer>, plaintextSha256Hex: string): Promise<string> {
+	return toHex(await hmac(await nameKey(vaultKey), plaintextSha256Hex)).slice(0, 32);
 }
 
 function nonce(index: number, last: boolean): Uint8Array<ArrayBuffer> {
@@ -151,6 +148,35 @@ export async function createEncryptor(vaultKey: Uint8Array<ArrayBuffer>): Promis
 		header,
 		chunk: (index, plain, last) =>
 			crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce(index, last), additionalData: MAGIC, tagLength: TAG_BYTES * 8 }, key, plain),
+	};
+}
+
+/**
+ * The encrypted file as bytes that are produced on demand: reading a range encrypts
+ * just the chunks it touches. A chunk always encrypts to the same bytes (same key,
+ * nonce and content), so ranges can be read in any order and more than once.
+ */
+export function encryptedSource(encryptor: Encryptor, plain: Blob): ByteSource {
+	const size = encryptedSize(plain.size);
+	const sealed = CHUNK_BYTES + TAG_BYTES;
+	const count = chunkCount(plain.size);
+	return {
+		size,
+		async read(start, end) {
+			const to = Math.min(end, size);
+			const out = new Uint8Array(Math.max(0, to - start));
+			if (start < HEADER_BYTES) out.set(encryptor.header.subarray(start, Math.min(to, HEADER_BYTES)), 0);
+			for (let i = Math.max(0, Math.floor((start - HEADER_BYTES) / sealed)); i < count; i++) {
+				const chunkStart = HEADER_BYTES + i * sealed;
+				if (chunkStart >= to) break;
+				const piece = await plain.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES).arrayBuffer();
+				const chunk = new Uint8Array(await encryptor.chunk(i, piece, i === count - 1));
+				const from = Math.max(start, chunkStart);
+				const until = Math.min(to, chunkStart + chunk.length);
+				if (until > from) out.set(chunk.subarray(from - chunkStart, until - chunkStart), from - start);
+			}
+			return out.buffer;
+		},
 	};
 }
 

@@ -8,6 +8,8 @@
  */
 export const S3_SECRET_ID = "keyhole-s3-secret";
 export const HTTP_SECRET_ID = "keyhole-server-secret";
+/** The vault's end-to-end encryption key (as text, see e2e/format.ts). */
+export const E2E_KEY_ID = "keyhole-e2e-key";
 
 export function bindingId(secretId: string): string {
 	return `${secretId}-host`;

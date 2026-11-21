@@ -16,10 +16,29 @@ export const UPLOADING_ALIAS = "uploading";
 export interface KeyholeRef {
 	alias: string;
 	key: string;
+	/**
+	 * File name of an encrypted file. The key of an encrypted file says nothing about
+	 * it, so the name travels in the link's fragment (`…/<id>.khe#photo.jpg`), which
+	 * stays in the note and is never sent to the storage.
+	 */
+	name?: string;
+}
+
+/** Keys of end-to-end encrypted files end in this. */
+export const ENCRYPTED_SUFFIX = ".khe";
+
+export function isEncryptedKey(key: string): boolean {
+	return key.endsWith(ENCRYPTED_SUFFIX);
+}
+
+/** The name that tells what kind of file this is: the real file name. */
+export function typeName(ref: KeyholeRef): string {
+	return ref.name ?? ref.key;
 }
 
 const ALIAS_RE = /^[a-z0-9][a-z0-9-]{0,31}$/;
 const KEY_SEGMENT_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 
 export function isValidAlias(alias: string): boolean {
 	return ALIAS_RE.test(alias);
@@ -32,7 +51,7 @@ export function isValidKey(key: string): boolean {
 }
 
 export function formatUrl(ref: KeyholeRef): string {
-	return `keyhole://${ref.alias}/${ref.key}`;
+	return `keyhole://${ref.alias}/${ref.key}${ref.name ? `#${ref.name}` : ""}`;
 }
 
 /** Parses a `keyhole://alias/key` URL. Returns null for anything else or anything unsafe. */
@@ -49,6 +68,16 @@ export function parseUrl(url: string | null | undefined): KeyholeRef | null {
 		return null;
 	}
 	if (!isValidAlias(alias) || !isValidKey(key)) return null;
+	if (isEncryptedKey(key)) {
+		const hash = url.indexOf("#");
+		let name = "";
+		try {
+			name = hash >= 0 ? decodeURIComponent(url.slice(hash + 1)) : "";
+		} catch {
+			// no usable name
+		}
+		if (NAME_RE.test(name)) return { alias, key, name };
+	}
 	return { alias, key };
 }
 
@@ -96,11 +125,18 @@ export function buildKey(parts: KeyParts): string {
 	return `${prefix}${yyyy}/${mm}/${parts.hash.slice(0, 16)}-${parts.fileName}`;
 }
 
-const UPLOAD_KEY_RE = /^\d{4}\/\d{2}\/[0-9a-f]{16}-[A-Za-z0-9._-]+$/;
+const UPLOAD_KEY_RE = /^\d{4}\/\d{2}\/(?:[0-9a-f]{16}-[A-Za-z0-9._-]+|[0-9a-f]{32}\.khe)$/;
 
 /** True if the key has the shape buildKey produces under this (normalized) prefix. */
 export function isUploadKey(key: string, prefix: string): boolean {
 	return isValidKey(key) && key.startsWith(prefix) && UPLOAD_KEY_RE.test(key.slice(prefix.length));
+}
+
+/** Key of an encrypted file: `{prefix}{yyyy}/{mm}/{id}.khe`. The id is a keyed hash of the content. */
+export function buildEncryptedKey(parts: { prefix: string; date: Date; id: string }): string {
+	const yyyy = String(parts.date.getUTCFullYear());
+	const mm = String(parts.date.getUTCMonth() + 1).padStart(2, "0");
+	return `${normalizePrefix(parts.prefix)}${yyyy}/${mm}/${parts.id}${ENCRYPTED_SUFFIX}`;
 }
 
 /** "notes" -> "notes/", "/a//b/" -> "a/b/", "" -> "". Drops unsafe segments. */
@@ -123,6 +159,7 @@ export function markdownEmbed(altText: string, ref: KeyholeRef): string {
 
 /** The file name shown to people: the last key segment without the content-hash prefix. */
 export function displayName(ref: KeyholeRef): string {
+	if (ref.name) return ref.name;
 	const last = ref.key.split("/").pop() ?? ref.key;
 	return last.replace(/^[0-9a-f]{16}-/, "");
 }

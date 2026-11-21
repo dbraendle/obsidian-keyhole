@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { sha256Hex } from "../src/crypto";
 import {
 	CHUNK_BYTES,
 	DecryptError,
@@ -12,7 +13,9 @@ import {
 	importVaultKey,
 	isEncrypted,
 	keyFingerprint,
-	objectIdOf,
+	objectId,
+	createEncryptor,
+	encryptedSource,
 } from "../src/e2e/format";
 
 function data(length: number): Uint8Array<ArrayBuffer> {
@@ -125,11 +128,38 @@ describe("vault key", () => {
 
 describe("object names", () => {
 	it("are the same for the same content and key, and different otherwise", async () => {
-		const plain = data(3000);
-		const id = await objectIdOf(key, plain.buffer);
+		const hash = await sha256Hex(data(3000));
+		const id = await objectId(key, hash);
 		expect(id).toMatch(/^[0-9a-f]{32}$/);
-		expect(await objectIdOf(key, plain.slice().buffer)).toBe(id);
-		expect(await objectIdOf(key, data(3001).buffer)).not.toBe(id);
-		expect(await objectIdOf(generateVaultKey(), plain.buffer)).not.toBe(id);
+		expect(await objectId(key, hash)).toBe(id);
+		expect(await objectId(key, await sha256Hex(data(3001)))).not.toBe(id);
+		expect(await objectId(generateVaultKey(), hash)).not.toBe(id);
+		expect(id).not.toContain(hash.slice(0, 16));
+	});
+});
+
+describe("encrypting while reading (for uploads in parts)", () => {
+	it("gives a valid file whatever the ranges are", async () => {
+		const plain = data(2 * CHUNK_BYTES + 12345);
+		const source = encryptedSource(await createEncryptor(key), new Blob([plain]));
+		expect(source.size).toBe(encryptedSize(plain.length));
+		for (const part of [source.size, 1_500_000, CHUNK_BYTES + TAG_BYTES, 7, 999_983].filter((n) => n > 1000 || source.size < 5_000_000)) {
+			if (part === 7) continue;
+			const out = new Uint8Array(source.size);
+			for (let at = 0; at < source.size; at += part) out.set(new Uint8Array(await source.read(at, at + part)), at);
+			expect(new Uint8Array(await decrypt(key, out.buffer)), `parts of ${part}`).toEqual(plain);
+		}
+		// overlapping and repeated reads agree
+		const a = new Uint8Array(await source.read(10, 2_000_000));
+		const b = new Uint8Array(await source.read(1_000_000, 1_000_100));
+		expect(b).toEqual(a.subarray(1_000_000 - 10, 1_000_100 - 10));
+		expect((await source.read(source.size - 5, source.size + 100)).byteLength).toBe(5);
+	});
+
+	it("handles an empty file", async () => {
+		const source = encryptedSource(await createEncryptor(key), new Blob([]));
+		const all = await source.read(0, source.size);
+		expect(all.byteLength).toBe(HEADER_BYTES + TAG_BYTES);
+		expect((await decrypt(key, all)).byteLength).toBe(0);
 	});
 });

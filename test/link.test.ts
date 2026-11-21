@@ -78,3 +78,29 @@ describe("findLinks", () => {
 		expect(text.slice(found[1]!.start, found[1]!.end)).toBe("[Rechnung.pdf](keyhole://main/x/r.pdf)");
 	});
 });
+
+describe("encrypted files", () => {
+	const key = "my-vault/2026/11/0123456789abcdef0123456789abcdef.khe";
+
+	it("carry their name in the fragment", () => {
+		const ref = { alias: "main", key, name: "photo.jpg" };
+		expect(formatUrl(ref)).toBe(`keyhole://main/${key}#photo.jpg`);
+		expect(parseUrl(formatUrl(ref))).toEqual(ref);
+		expect(displayName(ref)).toBe("photo.jpg");
+	});
+
+	it("ignore unsafe or missing names", () => {
+		expect(parseUrl(`keyhole://main/${key}`)).toEqual({ alias: "main", key });
+		expect(parseUrl(`keyhole://main/${key}#../../etc/passwd`)).toEqual({ alias: "main", key });
+		expect(parseUrl(`keyhole://main/${key}#a%20b.jpg`)).toEqual({ alias: "main", key });
+		expect(parseUrl(`keyhole://main/${key}#%E0%A4%A`)).toEqual({ alias: "main", key });
+	});
+
+	it("are found in notes with their name", async () => {
+		const { findLinks } = await import("../src/link");
+		const links = findLinks(`a ![photo.jpg|300](keyhole://main/${key}#photo.jpg) b`);
+		expect(links).toHaveLength(1);
+		expect(links[0]?.ref).toEqual({ alias: "main", key, name: "photo.jpg" });
+		expect(links[0]?.size).toBe("300");
+	});
+});

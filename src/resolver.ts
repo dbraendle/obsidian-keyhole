@@ -1,5 +1,7 @@
 import type { FileCache } from "./cache";
-import type { KeyholeRef } from "./link";
+import { decrypt, DecryptError } from "./e2e/format";
+import { t } from "./i18n";
+import { isEncryptedKey, typeName, type KeyholeRef } from "./link";
 import { mimeOf } from "./mime";
 import type { StorageBackend } from "./storage/backend";
 
@@ -28,7 +30,24 @@ export class Resolver {
 		private readonly getBackend: () => StorageBackend,
 		private readonly cache: FileCache,
 		private readonly options: () => ResolverOptions,
+		/** The vault's encryption key. Throws a readable error if this device does not have it. */
+		private readonly vaultKey: () => Uint8Array<ArrayBuffer>,
 	) {}
+
+	/** Turns stored bytes into the file: decrypts them if the file is encrypted. */
+	private async open(ref: KeyholeRef, stored: ArrayBuffer): Promise<Blob> {
+		let data = stored;
+		if (isEncryptedKey(ref.key)) {
+			const key = this.vaultKey();
+			try {
+				data = await decrypt(key, stored);
+			} catch (err) {
+				const message = err instanceof DecryptError && err.reason === "not-encrypted" ? t("e2e.notEncrypted") : t("e2e.wrongKey");
+				throw new Error(message, { cause: err });
+			}
+		}
+		return new Blob([data], { type: mimeOf(typeName(ref)) });
+	}
 
 	private cacheId(key: string): string {
 		return `${this.getBackend().fingerprint}|${key}`;
@@ -69,7 +88,8 @@ export class Resolver {
 		if (this.memory.has(id) || this.inflight.has(id)) return this.blobUrl(ref);
 		const opts = this.options();
 		if (opts.cacheEnabled && (await this.cache.has(id).catch(() => false))) return this.blobUrl(ref);
-		if (opts.streamLargeMedia) {
+		// An encrypted file cannot be streamed by the media player: it has to be decrypted here.
+		if (opts.streamLargeMedia && !isEncryptedKey(ref.key)) {
 			const url = await this.getBackend().streamUrl(ref.key, STREAM_TTL_SECONDS);
 			if (url) return url;
 		}
@@ -83,19 +103,21 @@ export class Resolver {
 		const data = await this.getBackend().get(ref.key);
 		const opts = this.options();
 		if (data.byteLength > opts.cacheMaxFileBytes) return "too-large";
-		await this.cache.put(id, new Blob([data], { type: mimeOf(ref.key) }), opts.cacheMaxBytes);
+		await this.cache.put(id, new Blob([data], { type: mimeOf(typeName(ref)) }), opts.cacheMaxBytes);
 		return "cached";
 	}
 
 	/** Called after an upload: the bytes are already here, so cache them right away. */
-	async prime(ref: KeyholeRef, data: ArrayBuffer | Blob): Promise<void> {
+	async prime(ref: KeyholeRef, data: ArrayBuffer | Blob, stored?: ArrayBuffer): Promise<void> {
 		const opts = this.options();
 		// A Blob (e.g. a picked file) is referenced, not copied into memory.
-		const blob = new Blob([data], { type: mimeOf(ref.key) });
+		const blob = new Blob([data], { type: mimeOf(typeName(ref)) });
 		const id = this.cacheId(ref.key);
 		this.remember(id, blob);
-		if (opts.cacheEnabled && blob.size <= opts.cacheMaxFileBytes) {
-			await this.cache.put(id, blob, opts.cacheMaxBytes).catch(() => undefined);
+		// The offline cache holds what the storage holds: ciphertext for encrypted files.
+		const forCache = isEncryptedKey(ref.key) ? (stored ? new Blob([stored]) : null) : blob;
+		if (forCache && opts.cacheEnabled && forCache.size <= opts.cacheMaxFileBytes) {
+			await this.cache.put(id, forCache, opts.cacheMaxBytes).catch(() => undefined);
 		}
 	}
 
@@ -103,14 +125,13 @@ export class Resolver {
 		const opts = this.options();
 		if (opts.cacheEnabled) {
 			const cached = await this.cache.get(id).catch(() => null);
-			if (cached) return this.remember(id, cached);
+			if (cached) return this.remember(id, await this.open(ref, await cached.arrayBuffer()));
 		}
 		const data = await this.getBackend().get(ref.key);
-		const blob = new Blob([data], { type: mimeOf(ref.key) });
-		if (opts.cacheEnabled && blob.size <= opts.cacheMaxFileBytes) {
-			await this.cache.put(id, blob, opts.cacheMaxBytes).catch(() => undefined);
+		if (opts.cacheEnabled && data.byteLength <= opts.cacheMaxFileBytes) {
+			await this.cache.put(id, new Blob([data], { type: mimeOf(typeName(ref)) }), opts.cacheMaxBytes).catch(() => undefined);
 		}
-		return this.remember(id, blob);
+		return this.remember(id, await this.open(ref, data));
 	}
 
 	private remember(id: string, blob: Blob): string {

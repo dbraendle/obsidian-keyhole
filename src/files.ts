@@ -1,6 +1,6 @@
 import { Menu, Modal, Notice, Setting, TFile, type App } from "obsidian";
 import { t } from "./i18n";
-import { displayName, findLinks, formatUrl, isUploadKey, markdownEmbed, normalizePrefix, parseUrl, type KeyholeRef } from "./link";
+import { displayName, findLinks, formatUrl, isUploadKey, markdownEmbed, normalizePrefix, parseUrl, typeName, type KeyholeRef } from "./link";
 import { formatBytes } from "./migrate-rules";
 import { kindOf } from "./mime";
 import { messageOf, type Renderer } from "./render";
@@ -73,7 +73,8 @@ export class FileActions {
 		const saved = new Map<string, TFile>();
 		for (const link of links) {
 			if (saved.has(link.ref.key)) continue;
-			const data = await this.ctx.backend().get(link.ref.key);
+			// Through the resolver, so encrypted files come back decrypted.
+			const data = await (await this.ctx.resolver.blob(link.ref)).arrayBuffer();
 			const path = await app.fileManager.getAvailablePathForAttachment(displayName(link.ref), note.path);
 			saved.set(link.ref.key, await app.vault.createBinary(path, data));
 		}
@@ -143,7 +144,8 @@ export class FileActions {
 
 	/** Notes (other than `except`) that link to this file. */
 	async usedIn(ref: KeyholeRef, except?: TFile): Promise<TFile[]> {
-		const url = formatUrl(ref);
+		// Without the fragment: the same file may be linked under another name.
+		const url = formatUrl({ alias: ref.alias, key: ref.key });
 		const { vault } = this.ctx.app;
 		const out: TFile[] = [];
 		for (const file of vault.getMarkdownFiles()) {
@@ -235,7 +237,7 @@ class FileModal extends Modal {
 		this.renderer.renderStandalone(this.contentEl.createDiv({ cls: "keyhole-file-modal-body" }), this.ref);
 		const buttons = new Setting(this.contentEl);
 		// PDFs and other files bring their own download button.
-		const kind = kindOf(this.ref.key);
+		const kind = kindOf(typeName(this.ref));
 		if (kind === "image" || kind === "audio" || kind === "video") {
 			buttons.addButton((b) => b.setButtonText(t("render.download")).onClick(() => void this.renderer.download(this.ref)));
 		}

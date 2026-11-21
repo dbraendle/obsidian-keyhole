@@ -37,6 +37,8 @@ describe("clean-up only offers Keyhole uploads", () => {
 	it("accepts keys built by Keyhole", () => {
 		expect(isUploadKey("2026/11/3f2a9c1e0b7d4a55-photo.jpg", "")).toBe(true);
 		expect(isUploadKey("my-vault/2026/11/3f2a9c1e0b7d4a55-photo.jpg", "my-vault/")).toBe(true);
+		expect(isUploadKey("2026/11/0123456789abcdef0123456789abcdef.khe", "")).toBe(true);
+		expect(isUploadKey("2026/11/0123456789abcdef.khe", "")).toBe(false);
 	});
 
 	it("rejects other files in the same storage", () => {

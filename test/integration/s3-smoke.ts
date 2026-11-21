@@ -12,6 +12,7 @@ import { sha256Hex } from "../../src/crypto";
 import { parseS3List } from "../../src/storage/listing";
 import { multipartUpload, type Send } from "../../src/storage/multipart";
 import { sha256HexOfBlob } from "../../src/sha256";
+import { blobSource } from "../../src/storage/source";
 
 const env = (name: string): string => {
 	const value = process.env[name];
@@ -79,7 +80,7 @@ const send: Send = async (request) => {
 	if (!res.ok) throw new Error(`${request.method} ${res.status}: ${text}`);
 	return { text, headers: Object.fromEntries(res.headers.entries()) };
 };
-await multipartUpload(send, creds, bigUrl, new Blob([big]), "application/octet-stream", 5 * 1024 * 1024);
+await multipartUpload(send, creds, bigUrl, blobSource(new Blob([big])), "application/octet-stream", 5 * 1024 * 1024);
 const bigBack = await call("GET", `/${bucket}/${bigKey}`);
 const same = (await sha256HexOfBlob(await bigBack.blob())) === (await sha256Hex(big));
 console.log("multipart:", bigBack.status, same ? "content ok" : "CONTENT MISMATCH");

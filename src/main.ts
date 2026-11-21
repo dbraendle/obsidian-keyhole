@@ -14,7 +14,8 @@ import { Migrator } from "./migrate";
 import { FileActions } from "./files";
 import { LocalAttachmentHint } from "./hint";
 import { initLanguage, t } from "./i18n";
-import { bindingId, checkBinding, hostOf, HTTP_SECRET_ID, originOf, S3_SECRET_ID } from "./secrets";
+import { bindingId, checkBinding, E2E_KEY_ID, hostOf, HTTP_SECRET_ID, originOf, S3_SECRET_ID } from "./secrets";
+import { exportVaultKey, importVaultKey, keyFingerprint } from "./e2e/format";
 
 const MB = 1024 * 1024;
 const LINK_RE = /keyhole:\/\/[a-z0-9-]+\/[^\s)\]"'<>]+/gi;
@@ -44,6 +45,7 @@ export default class KeyholePlugin extends Plugin {
 				cacheMaxFileBytes: this.settings.cacheMaxFileMB * MB,
 				streamLargeMedia: this.settings.streamLargeMedia,
 			}),
+			() => this.requireVaultKey(),
 		);
 		this.renderer = new Renderer(this.resolver, (message) => this.reportError(message));
 		this.renderer.setAlias(this.settings.alias);
@@ -53,6 +55,7 @@ export default class KeyholePlugin extends Plugin {
 			settings: () => this.settings,
 			backend: () => this.getBackend(),
 			resolver: this.resolver,
+			encryptionKey: () => (this.settings.e2eEnabled ? this.requireVaultKey() : null),
 		});
 
 		const migrator = new Migrator({ app: this.app, settings: () => this.settings, uploader });
@@ -339,6 +342,43 @@ export default class KeyholePlugin extends Plugin {
 			const storage = this.app.secretStorage;
 			if (storage.getSecret(id) && !storage.getSecret(bindingId(id))) this.bindSecret(id, url);
 		}
+	}
+
+	/** The vault's encryption key from this device's keychain, or null if it is not here. */
+	vaultKey(): Uint8Array<ArrayBuffer> | null {
+		const text = this.app.secretStorage.getSecret(E2E_KEY_ID);
+		return text ? importVaultKey(text) : null;
+	}
+
+	private requireVaultKey(): Uint8Array<ArrayBuffer> {
+		const key = this.vaultKey();
+		if (!key) throw new StorageError(t("e2e.noKey"));
+		return key;
+	}
+
+	/** The key as text, to show it again. Null if this device does not have it. */
+	vaultKeyText(): string | null {
+		const key = this.vaultKey();
+		return key ? exportVaultKey(key) : null;
+	}
+
+	/** First set-up for this vault: keeps the key on this device and remembers its fingerprint in the settings. */
+	async setUpEncryption(key: Uint8Array<ArrayBuffer>): Promise<void> {
+		this.app.secretStorage.setSecret(E2E_KEY_ID, exportVaultKey(key));
+		this.settings.e2eFingerprint = await keyFingerprint(key);
+		this.settings.e2eEnabled = true;
+		await this.saveData(this.settings);
+		this.onSettingsChanged();
+	}
+
+	/** Another device: accepts the key only if it is the one this vault was set up with. */
+	async addVaultKey(text: string): Promise<"ok" | "invalid" | "other-key"> {
+		const key = importVaultKey(text);
+		if (!key) return "invalid";
+		if ((await keyFingerprint(key)) !== this.settings.e2eFingerprint) return "other-key";
+		this.app.secretStorage.setSecret(E2E_KEY_ID, exportVaultKey(key));
+		this.onSettingsChanged();
+		return "ok";
 	}
 
 	async clearCache(): Promise<void> {

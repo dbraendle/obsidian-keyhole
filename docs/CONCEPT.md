@@ -75,18 +75,18 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 - LRU, with a size limit and a per-file limit.
 - Files are cached when viewed and after upload. The command "Keep attachments of the current note on this device" prefetches a note.
 
-### 7. End-to-end encryption (in progress)
+### 7. End-to-end encryption (optional, since 0.6)
 
-Optional. With it, the storage provider sees only ciphertext and no file names.
+With it, the storage provider sees only ciphertext and no file names. It is off by default: it costs streaming, and a lost key means lost files.
 
-- **File format "KHE1"** (`src/e2e/format.ts`, done): 4 bytes magic, 16 bytes random salt, then the plaintext in 1 MiB chunks, each sealed with AES-256-GCM. The file key is HKDF-SHA256(vault key, salt). The nonce is the chunk index plus a last-chunk flag (the STREAM construction, as in age), so chunks cannot be reordered, dropped or cut off unnoticed. Chunks are independent, which allows decrypting a byte range later. Web Crypto only, so it runs on mobile.
-- **Vault key**: 32 random bytes in the device keychain, exported as text (`keyhole-key-v1:…`) for the password manager and the other devices. A non-secret fingerprint in the settings lets another device check that the pasted key is the right one. Losing the key means losing the files; there is no recovery.
+- **File format "KHE1"** (`src/e2e/format.ts`): 4 bytes magic, 16 bytes random salt, then the plaintext in 1 MiB chunks, each sealed with AES-256-GCM. The file key is HKDF-SHA256(vault key, salt). The nonce is the chunk index plus a last-chunk flag (the STREAM construction, as in age), so chunks cannot be reordered, dropped or cut off unnoticed. Chunks are independent, which allows decrypting a byte range later. Web Crypto only, so it runs on mobile.
+- **Vault key**: 32 random bytes in the device keychain, exported as text (`keyhole-key-v1:…`). No passphrase: a random key cannot be weak. The set-up dialog only turns encryption on after the key was pasted back from wherever it was saved and the "no recovery" consequence was acknowledged. A non-secret fingerprint in the settings lets other devices reject a wrong key.
 - **Object names**: `{prefix}yyyy/mm/{keyed hash of the content, 32 hex}.khe`. Deterministic per vault key (uploading twice stores once), meaningless without the key.
-- **Open, to be decided before the integration:**
-  - where the file name and type live once they are no longer in the object key (proposal: in the link's fragment, `keyhole://main/2026/11/<id>.khe#photo.jpg`, which never leaves the vault and extends the link format without breaking it);
-  - random key only, or also a passphrase (PBKDF2; weaker, but nothing to copy between devices);
-  - whether the offline cache keeps plaintext (as today) or ciphertext.
-- **Consequences**: no streaming (media is downloaded and decrypted as a whole, until range decryption is built); files uploaded before stay readable and unencrypted until they are moved over.
+- **The file name lives in the link's fragment**: `keyhole://main/2026/11/<id>.khe#photo.jpg`. The fragment never leaves the vault. It tells the renderer the file type and gives the file its name back. This extends the link format without changing existing links; versions before 0.6 show such a file as a download card with unreadable content.
+- **Uploads**: the file is encrypted while it is read (`encryptedSource`), so encrypted uploads in parts need no more memory than plain ones.
+- **Offline cache**: holds what the storage holds, so ciphertext for encrypted files; it is decrypted on every load.
+- **Consequences**: no streaming (media is downloaded and decrypted as a whole, until range decryption is built); files uploaded before stay readable and unencrypted.
+- **Not yet**: re-encrypting existing files; changing the key.
 
 ## Known limits and open questions
 
@@ -97,8 +97,8 @@ Optional. With it, the storage provider sees only ciphertext and no file names.
 - **Plain WebDAV cannot stream video**; it downloads the file fully. Use S3 or the Keyhole server for large media.
 - **Videos that are not cached do not play offline.**
 - **Deleting a link does not delete the file.** "Clean up storage" lists unused files; it only offers keys that have the shape Keyhole writes under the vault's prefix.
-- **The provider sees plaintext and file names.** Keys contain the file name. See the roadmap for end-to-end encryption.
-- **The offline cache is not encrypted** and survives removing the plugin (Obsidian has no uninstall hook).
+- **Without end-to-end encryption the provider sees plaintext and file names.** Keys contain the file name.
+- **The offline cache survives removing the plugin** (Obsidian has no uninstall hook) and holds unencrypted files in the clear.
 - **No isolation between plugins.** Any plugin in the vault can read the keychain and blob URLs. This is Obsidian's model, not something Keyhole can change.
 
 ## Roadmap
@@ -107,7 +107,7 @@ Done: moving a note's local attachments (0.2), image shrinking (0.2), the way ba
 
 1. **Next**
    - Uploads in parts for the Keyhole server too (S3 has them since 0.5).
-   - Optional client-side end-to-end encryption (AES-GCM, key in the keychain). Storage providers would see only ciphertext, and keys would no longer carry file names. Streaming then requires a full download.
+   - Encrypt existing files; range decryption so encrypted media can stream.
 2. **Later**
    - Several storages at the same time (the alias is already in the link).
    - Show the cache status in settings; offline marker on video.

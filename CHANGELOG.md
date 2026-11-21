@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Optional end-to-end encryption (Settings → Keyhole → Encryption). Files are encrypted on the device with AES-256-GCM before upload; the storage provider sees neither content nor file names. You get a key that you save in your password manager and paste once on every device. There is no recovery if the key is lost, so encryption only turns on after you pasted the saved key back.
+- Encrypted files keep their name in the link (`…/<id>.khe#photo.jpg`); existing links and files are unchanged and stay unencrypted.
+- The offline cache keeps encrypted files encrypted.
+- Encrypted audio and video are downloaded completely instead of streamed.
+
 ## 0.5.0
 
 - Large files on S3-compatible storage are uploaded in parts (multipart upload, 8 MB each, for files over 16 MB). Only one part is in memory at a time, which avoids crashes with big videos on phones. If a part fails, the unfinished upload is aborted, so no leftovers are stored.

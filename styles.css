@@ -270,3 +270,32 @@ body.keyhole-modal-open .workspace .keyhole-pdf-pages {
 	color: var(--text-muted);
 	white-space: nowrap;
 }
+
+/* Encryption key, shown once to be saved */
+.keyhole-key-box {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+}
+
+.keyhole-key-text {
+	flex: 1;
+	min-width: 0;
+	overflow-wrap: anywhere;
+	user-select: all;
+	font-size: var(--font-ui-small);
+}
+
+.keyhole-key-step {
+	margin-top: var(--size-4-4);
+	font-weight: var(--font-semibold);
+}
+
+.keyhole-key-input {
+	width: 100%;
+	min-width: 16em;
+}

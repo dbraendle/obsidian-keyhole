@@ -2,7 +2,9 @@ import { MarkdownView, Notice, TFile, type App, type Editor, type MarkdownFileIn
 import { sha256Hex } from "./crypto";
 import { sha256HexOfBlob } from "./sha256";
 import { MULTIPART_THRESHOLD_BYTES } from "./storage/multipart";
-import { buildKey, markdownEmbed, safeFileName, UPLOADING_ALIAS, type KeyholeRef } from "./link";
+import { createEncryptor, encryptedSource, objectId } from "./e2e/format";
+import { buildEncryptedKey, buildKey, markdownEmbed, safeFileName, UPLOADING_ALIAS, type KeyholeRef } from "./link";
+import { blobSource } from "./storage/source";
 import { extensionForMime, mimeOf } from "./mime";
 import { clipboardIsRichText, nameFor, runLimited, shouldUpload, UPLOAD_CONCURRENCY } from "./upload-rules";
 import type { Resolver } from "./resolver";
@@ -17,6 +19,8 @@ export interface UploadContext {
 	settings: () => KeyholeSettings;
 	backend: () => StorageBackend;
 	resolver: Resolver;
+	/** The key to encrypt new uploads with, or null if encryption is off. Throws if it is on but the key is missing. */
+	encryptionKey: () => Uint8Array<ArrayBuffer> | null;
 }
 
 export interface StoredFile {
@@ -133,28 +137,40 @@ export class Uploader {
 			}
 		}
 		const backend = this.ctx.backend();
-		const refFor = (hash: string): KeyholeRef => ({
-			alias: settings.alias,
-			key: buildKey({
-				prefix: settings.keyPrefix,
-				date: new Date(),
-				hash,
-				fileName: safeFileName(name, extensionForMime(file.type)),
-			}),
-		});
+		const vaultKey = this.ctx.encryptionKey();
+		const safeName = safeFileName(name, extensionForMime(file.type));
 		// Large files go up in parts where the storage can do that, so they never
 		// have to fit into memory as a whole (phones run out of it).
-		if (file.size > MULTIPART_THRESHOLD_BYTES && backend.putBlob) {
-			const ref = refFor(await sha256HexOfBlob(file));
-			await backend.putBlob(ref.key, file, file.type || mimeOf(ref.key));
-			await this.ctx.resolver.prime(ref, file);
-			return { ref, name, bytes: file.size, originalBytes: original.size };
+		const large = file.size > MULTIPART_THRESHOLD_BYTES && backend.putLarge !== undefined;
+		const hash = large ? await sha256HexOfBlob(file) : await sha256Hex(await file.arrayBuffer());
+		const date = new Date();
+
+		let ref: KeyholeRef;
+		let source = blobSource(file);
+		let contentType: string;
+		if (vaultKey) {
+			// Encrypted: the key says nothing about the file; its name stays in the link.
+			ref = {
+				alias: settings.alias,
+				key: buildEncryptedKey({ prefix: settings.keyPrefix, date, id: await objectId(vaultKey, hash) }),
+				name: safeName,
+			};
+			source = encryptedSource(await createEncryptor(vaultKey), file);
+			contentType = "application/octet-stream";
+		} else {
+			ref = { alias: settings.alias, key: buildKey({ prefix: settings.keyPrefix, date, hash, fileName: safeName }) };
+			contentType = file.type || mimeOf(ref.key);
 		}
-		const data = await file.arrayBuffer();
-		const ref = refFor(await sha256Hex(data));
-		await backend.put(ref.key, data, file.type || mimeOf(ref.key));
-		await this.ctx.resolver.prime(ref, data);
-		return { ref, name, bytes: data.byteLength, originalBytes: original.size };
+
+		if (large && backend.putLarge) {
+			await backend.putLarge(ref.key, source, contentType);
+			await this.ctx.resolver.prime(ref, file);
+		} else {
+			const stored = await source.read(0, source.size);
+			await backend.put(ref.key, stored, contentType);
+			await this.ctx.resolver.prime(ref, file, stored);
+		}
+		return { ref, name, bytes: file.size, originalBytes: original.size };
 	}
 
 	/** One image at a time: decoding a 12-megapixel photo takes a lot of memory on phones. */
