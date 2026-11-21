@@ -230,6 +230,12 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						},
 					},
 					{
+						name: t("settings.e2e.existingFiles"),
+						desc: t("settings.e2e.existingFiles.desc"),
+						visible: () => Boolean(s.e2eFingerprint) && this.plugin.keyMatches && s.e2eEnabled,
+						action: () => void this.plugin.files.encryptExisting(),
+					},
+					{
 						name: t("settings.e2e.enter"),
 						visible: () => Boolean(s.e2eFingerprint) && !this.plugin.keyMatches,
 						render: (setting) => this.renderKeyEntry(setting, t("settings.e2e.enter.desc")),

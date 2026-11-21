@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isUploadKey } from "../src/link";
-import { canvasUsesFile } from "../src/migrate-rules";
+import { canvasUsesFile, findUrls, rewriteUrls } from "../src/migrate-rules";
 import { bindingId, checkBinding, hostOf, originOf } from "../src/secrets";
 import { parseKeyholeList } from "../src/storage/listing";
 
@@ -82,5 +82,30 @@ describe("attachments used in a canvas", () => {
 
 	it("keeps the file if the canvas cannot be parsed", () => {
 		expect(canvasUsesFile("{broken photo.png", "img/photo.png", "photo.png")).toBe(true);
+	});
+});
+
+describe("rewriting links when files are encrypted", () => {
+	const a = "keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg";
+	const b = "keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg2";
+	const next = "keyhole://main/2026/11/0123456789abcdef0123456789abcdef.khe#photo.jpg";
+
+	it("finds every URL once, as written", () => {
+		expect(findUrls(`![x|300](${a}) text [doc](${b}) again ![y](${a})`)).toEqual([a, b]);
+		expect(findUrls("no links here")).toEqual([]);
+	});
+
+	it("replaces whole URLs only and keeps everything around them", () => {
+		const text = `![x|300](${a}) and [doc](${b}) and ![y](${a})`;
+		const result = rewriteUrls(text, new Map([[a, next]]));
+		expect(result.replaced).toBe(2);
+		expect(result.text).toBe(`![x|300](${next}) and [doc](${b}) and ![y](${next})`);
+	});
+
+	it("works inside a canvas (JSON)", () => {
+		const canvas = JSON.stringify({ nodes: [{ type: "text", text: `![photo](${a})\nmore` }] });
+		const result = rewriteUrls(canvas, new Map([[a, next]]));
+		expect(result.replaced).toBe(1);
+		expect((JSON.parse(result.text) as { nodes: { text: string }[] }).nodes[0]?.text).toBe(`![photo](${next})\nmore`);
 	});
 });

@@ -125,11 +125,12 @@ export class Uploader {
 	 * content-addressed key and keeps a copy in the cache. Used by paste/drop/picker
 	 * and by the migration of local attachments.
 	 */
-	async store(original: File, originalName: string): Promise<StoredFile> {
+	async store(original: File, originalName: string, optimize = true): Promise<StoredFile> {
 		const settings = this.ctx.settings();
 		let file = original;
 		let name = originalName;
-		if (settings.optimizeImages) {
+		// Files that are in the storage already were shrunk when they went up: never re-encode them.
+		if (optimize && settings.optimizeImages) {
 			const smaller = await this.optimize(original, originalName);
 			if (smaller) {
 				file = smaller;

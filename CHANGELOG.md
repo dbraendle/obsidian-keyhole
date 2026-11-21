@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+
+- "Encrypt existing files" (Settings → Keyhole → Encryption, or the command palette): files uploaded before encryption was turned on are uploaded again encrypted, and the links in notes and canvases are rewritten. The old unencrypted copies stay in the storage until you remove them with "Clean up storage".
+- The Keyhole server lives in its own repository now: https://github.com/dbraendle/keyhole-server. Nothing changes for the plugin or for running servers.
+
 ## 0.6.0
 
 - Optional end-to-end encryption (Settings → Keyhole → Encryption). Files are encrypted on the device with AES-256-GCM before upload; the storage provider sees neither content nor file names. You get a key that you save in your password manager and paste once on every device. There is no recovery if the key is lost, so encryption only turns on after you pasted the saved key back.

@@ -87,7 +87,8 @@ With it, the storage provider sees only ciphertext and no file names. It is off 
 - **Uploads**: the file is encrypted while it is read (`encryptedSource`), so encrypted uploads in parts need no more memory than plain ones.
 - **Offline cache**: holds what the storage holds, so ciphertext for encrypted files; it is decrypted on every load.
 - **Consequences**: no streaming (media is downloaded and decrypted as a whole, until range decryption is built); files uploaded before stay readable and unencrypted.
-- **Not yet**: re-encrypting existing files; changing the key.
+- **Existing files** (0.7): "Encrypt existing files" downloads each unencrypted file, uploads it again encrypted (without shrinking it a second time) and rewrites the URLs in notes and canvases. It does not delete the old objects: other devices may not have synced the rewritten notes yet, so that is left to the clean-up.
+- **Not yet**: changing the key.
 
 ## Known limits and open questions
 
@@ -108,7 +109,7 @@ Done: moving a note's local attachments (0.2), image shrinking (0.2), the way ba
 
 1. **Next**
    - Uploads in parts for the Keyhole server too (S3 has them since 0.5).
-   - Encrypt existing files; range decryption so encrypted media can stream.
+   - Range decryption so encrypted media can stream; changing the encryption key.
 2. **Later**
    - Several storages at the same time (the alias is already in the link).
    - Show the cache status in settings; offline marker on video.

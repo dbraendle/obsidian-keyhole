@@ -82,3 +82,25 @@ export function canvasUsesFile(canvasText: string, path: string, name: string): 
 		return canvasText.includes(name);
 	}
 }
+
+const KEYHOLE_URL_RE = /keyhole:\/\/[a-z0-9-]+\/[^\s)\]"'<>]+/gi;
+
+/** Every keyhole:// URL in a text (a note or a canvas), exactly as written. */
+export function findUrls(text: string): string[] {
+	return [...new Set(text.match(KEYHOLE_URL_RE) ?? [])];
+}
+
+/**
+ * Replaces whole keyhole:// URLs according to `map` (old URL as written → new URL).
+ * Everything around them (alt text, sizes, the JSON of a canvas) stays untouched.
+ */
+export function rewriteUrls(text: string, map: Map<string, string>): { text: string; replaced: number } {
+	let replaced = 0;
+	const out = text.replace(KEYHOLE_URL_RE, (url) => {
+		const next = map.get(url);
+		if (next === undefined) return url;
+		replaced++;
+		return next;
+	});
+	return { text: out, replaced };
+}
