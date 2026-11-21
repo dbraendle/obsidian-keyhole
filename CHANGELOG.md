@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.6
+
+Hardening after a security review. No change to notes or links.
+
+- Secrets are tied to the server they were saved for. If the storage address in the settings changes to another host, Keyhole asks for the secret again instead of sending a token or password there. Existing secrets are tied to the configured server on first start.
+- The keychain entries Keyhole reads are fixed in the code and can no longer be chosen through the settings file.
+- Clean up storage only offers files that Keyhole uploaded under this vault's key prefix, never other files in the same bucket.
+- Moving attachments keeps local files that a canvas still uses.
+- Files show up right after Keyhole is switched on. Before, the notes stayed empty until Obsidian was restarted if the settings were open in their own window.
+- PDFs are rendered with code evaluation switched off in pdf.js.
+- Keyhole no longer undoes other plugins' changes to link handling when it is switched off, and it copes with Obsidian versions that do not let plugins change the mobile toolbar.
+- "Bring back into the vault" in the file viewer reports failures instead of always reporting success.
+- README: more precise about what is synced (settings, including the access key ID), what the storage provider sees (file names), the clipboard and the offline cache.
+
 ## 0.4.5
 
 - Release files come with GitHub artifact attestations (verifiable build provenance).

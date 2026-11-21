@@ -1,6 +1,6 @@
 import { Menu, Modal, Notice, Setting, TFile, type App } from "obsidian";
 import { t } from "./i18n";
-import { displayName, findLinks, formatUrl, markdownEmbed, normalizePrefix, parseUrl, type KeyholeRef } from "./link";
+import { displayName, findLinks, formatUrl, isUploadKey, markdownEmbed, normalizePrefix, parseUrl, type KeyholeRef } from "./link";
 import { formatBytes } from "./migrate-rules";
 import { kindOf } from "./mime";
 import { messageOf, type Renderer } from "./render";
@@ -197,16 +197,21 @@ export class FileActions {
 	}
 }
 
-/** Pure: which stored objects no note refers to (and are old enough to be safe to offer). */
+/**
+ * Pure: which stored objects no note refers to (and are old enough to be safe to offer).
+ * Only objects whose key looks like a Keyhole upload under `prefix` qualify, so files of
+ * other apps or other vaults in the same storage are never offered for deletion.
+ */
 export function findOrphans(
 	objects: StoredObject[],
 	referenced: Set<string>,
 	now: number,
 	includeRecent: boolean,
+	prefix = "",
 ): StoredObject[] {
 	const cutoff = now - CLEANUP_GRACE_DAYS * 24 * 3600 * 1000;
 	return objects
-		.filter((o) => o.key !== TEST_KEY && !o.key.endsWith(`/${TEST_KEY}`) && !referenced.has(o.key))
+		.filter((o) => o.key !== TEST_KEY && isUploadKey(o.key, prefix) && !referenced.has(o.key))
 		.filter((o) => includeRecent || (o.lastModified > 0 && o.lastModified < cutoff))
 		.sort((a, b) => b.size - a.size);
 }
@@ -240,8 +245,12 @@ class FileModal extends Modal {
 			buttons.addButton((b) =>
 				b.setButtonText(t("files.restore")).onClick(async () => {
 					this.close();
-					await this.actions.restore(note, [this.ref]);
-					new Notice(t("files.restored", { count: 1 }));
+					try {
+						const count = await this.actions.restore(note, [this.ref]);
+						new Notice(count ? t("files.restored", { count }) : t("files.noneInNote"));
+					} catch (err) {
+						new Notice(t("notice.error", { message: messageOf(err) }));
+					}
 				}),
 			);
 		}
@@ -323,18 +332,19 @@ class CleanupModal extends Modal {
 	private render(): void {
 		const { contentEl } = this;
 		contentEl.empty();
-		const orphans = findOrphans(this.objects, this.referenced, Date.now(), this.includeRecent);
+		const prefix = normalizePrefix(this.ctx.settings().keyPrefix);
+		const orphans = findOrphans(this.objects, this.referenced, Date.now(), this.includeRecent, prefix);
 		for (const key of [...this.selected]) if (!orphans.some((o) => o.key === key)) this.selected.delete(key);
 
 		contentEl.createEl("p", {
 			text: t("cleanup.summary", {
-				total: this.objects.length,
+				total: this.objects.filter((o) => isUploadKey(o.key, prefix)).length,
 				used: this.objects.filter((o) => this.referenced.has(o.key)).length,
-				orphans: findOrphans(this.objects, this.referenced, Date.now(), true).length,
+				orphans: findOrphans(this.objects, this.referenced, Date.now(), true, prefix).length,
 			}),
 		});
 		const note = contentEl.createEl("p", { cls: "setting-item-description", text: t("cleanup.explain", { days: CLEANUP_GRACE_DAYS }) });
-		if (!normalizePrefix(this.ctx.settings().keyPrefix)) note.appendText(` ${t("cleanup.noPrefix")}`);
+		if (!prefix) note.appendText(` ${t("cleanup.noPrefix")}`);
 
 		new Setting(contentEl).setName(t("cleanup.includeRecent", { days: CLEANUP_GRACE_DAYS })).addToggle((tg) =>
 			tg.setValue(this.includeRecent).onChange((v) => {
@@ -344,7 +354,7 @@ class CleanupModal extends Modal {
 		);
 
 		if (!orphans.length) {
-			const recent = this.includeRecent ? 0 : findOrphans(this.objects, this.referenced, Date.now(), true).length;
+			const recent = this.includeRecent ? 0 : findOrphans(this.objects, this.referenced, Date.now(), true, prefix).length;
 			contentEl.createEl("p", {
 				text: recent ? t("cleanup.onlyRecent", { count: recent, days: CLEANUP_GRACE_DAYS }) : t("cleanup.nothing"),
 			});
@@ -398,6 +408,7 @@ class CleanupModal extends Modal {
 			const notice = new Notice(t("cleanup.deleting", { count: keys.length }), 0);
 			let deleted = 0;
 			const failed: string[] = [];
+			const failedKeys = new Set<string>();
 			for (const key of keys) {
 				try {
 					await this.ctx.backend().delete(key);
@@ -405,11 +416,12 @@ class CleanupModal extends Modal {
 					deleted++;
 				} catch (err) {
 					failed.push(`${key} (${messageOf(err)})`);
+					failedKeys.add(key);
 				}
 			}
 			notice.setMessage(t("cleanup.done", { count: deleted }) + (failed.length ? ` ${t("move.failed", { list: failed.join(", ") })}` : ""));
 			window.setTimeout(() => notice.hide(), 8000);
-			this.objects = this.objects.filter((o) => !keys.includes(o.key) || failed.some((f) => f.startsWith(o.key)));
+			this.objects = this.objects.filter((o) => !keys.includes(o.key) || failedKeys.has(o.key));
 			this.selected.clear();
 			this.render();
 		}, true).open();

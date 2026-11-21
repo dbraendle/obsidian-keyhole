@@ -3,7 +3,7 @@
 Keep your attachments on your own private storage. Drop or paste an image, PDF, recording, video or any other file into a note. Keyhole uploads it to your S3-compatible bucket or your own server and writes the link for you. When you view the note, Keyhole fetches the file with credentials that are stored only on your device. Your vault stays small, and the files stay private.
 
 - **Private by design:** nothing is publicly readable. Notes contain only `keyhole://` links, never tokens or signed URLs.
-- **Credentials stay on the device:** they live in Obsidian's keychain, not in your vault, so they are never synced or committed to Git.
+- **Secrets stay on the device:** secret keys, tokens and passwords live in Obsidian's keychain, not in your vault, so they are never synced or committed to Git.
 - **Works where attachments work:** Reading view, Live Preview, hover previews, Canvas and the image viewer, on desktop and mobile.
 - **All kinds of files:**
   - images;
@@ -58,7 +58,7 @@ Manual install: download `main.js`, `manifest.json` and `styles.css` from the [l
 ### Keyhole server
 
 ```sh
-docker run -d -p 8080:8080 -v keyhole-data:/data \
+docker run -d -p 127.0.0.1:8080:8080 -v keyhole-data:/data \
   -e KEYHOLE_TOKENS="$(openssl rand -hex 32)" ghcr.io/dbraendle/keyhole-server:latest
 ```
 
@@ -76,7 +76,7 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 
 ![Hint bar on a note with local attachments](docs/images/01-hint.png)
 
-Notes that still have local attachments show a small bar: **Move to Keyhole** uploads them (images shrunk), rewrites the embeds (sizes like `|300` are kept) and moves the local files to the trash. Files that other notes still use are kept. The same is available as a command and in the note's ⋯ menu.
+Notes that still have local attachments show a small bar: **Move to Keyhole** uploads them (images shrunk), rewrites the embeds (sizes like `|300` are kept) and moves the local files to the trash. Files that other notes or canvases still use are kept. Shrinking is lossy: if you want to keep originals in full quality, switch off *Shrink images before upload* or *Remove local copies after moving* first. The same is available as a command and in the note's ⋯ menu.
 
 ### Your way out
 
@@ -84,7 +84,7 @@ Notes that still have local attachments show a small bar: **Move to Keyhole** up
 
 ### Keeping the storage tidy
 
-Deleting a link does not delete the file. **Clean up storage** compares your storage with the notes of this vault and lists files no note uses anymore; you pick what to delete. Files from the last 7 days are hidden by default, because notes on other devices may not have synced yet.
+Deleting a link does not delete the file. **Clean up storage** compares your storage with the notes of this vault and lists files no note uses anymore; you pick what to delete. Only files that Keyhole uploaded under this vault's key prefix are listed, never other files in the same bucket. Deleting is permanent unless your storage keeps versions. Files from the last 7 days are hidden by default, because notes on other devices may not have synced yet.
 
 ### Offline
 
@@ -98,11 +98,15 @@ Keyhole follows Obsidian's interface language. Available: English, German. Trans
 
 Keyhole connects **only** to the storage you configure, to upload and download your files. It sends no telemetry and contacts no other service. You need an account with an S3-compatible provider (often paid beyond a free tier), or your own server.
 
-- Secrets are stored in Obsidian's keychain on each device.
-- The offline cache lives in the app's local storage (IndexedDB) on each device, outside your vault.
+- **Secrets** (secret access key, token, password) are stored in Obsidian's keychain on each device. Each one is tied to the server it was saved for: if the storage address in the settings changes to another host, Keyhole asks for the secret again instead of sending it there.
+- **Settings** are stored in the plugin's `data.json` inside your vault, like for every plugin, and are synced with it if you sync plugin settings. They contain the storage address, bucket, access key ID and WebDAV user name, but no secrets.
+- Obsidian does not separate plugins from each other: other plugins you install can read the keychain and the files shown in your notes. Only install plugins you trust.
+- **The offline cache** lives in the app's local storage (IndexedDB) on each device, outside your vault and not encrypted by Keyhole. It stays there when you remove the plugin: run **Clear offline cache on this device** first.
+- **What your storage provider sees:** the files themselves and their names. The file name is part of the key (`2026/11/3f2a…-photo.jpg`), so it appears in the provider's listings and logs. Keyhole does not encrypt files; use a provider or server you trust.
+- **Images** are shrunk on your device, never by a service. Re-encoding removes metadata such as the location; an image that is uploaded unchanged (GIF, SVG, already small, or shrinking switched off) keeps its metadata.
 - To stream audio and video, Keyhole gives the media player a signed link that expires after a few hours. This is a presigned URL for S3, or an HMAC-signed URL for the Keyhole server. These links exist only while the note is open and are never written to your notes.
 - **Reading your notes:** "Clean up storage" and "Restore all notes" go through every note in the vault, to find which stored files are still linked and which notes contain Keyhole links. Keyhole only looks for `keyhole://` links and never sends note contents anywhere.
-- **Clipboard:** when you paste, Keyhole checks whether the clipboard holds files (which it uploads) or text (which it leaves to Obsidian). It writes to the clipboard only when you choose "Copy link" on a file.
+- **Clipboard:** when you paste, Keyhole checks whether the clipboard holds files (which it uploads) or text (which it leaves to Obsidian). It writes to the clipboard in two cases: when you choose "Copy link" on a file, and when an upload finishes after you deleted its placeholder from the note (the finished link is put on the clipboard so it is not lost).
 - **Release files** carry GitHub artifact attestations, so you can check that `main.js` and `styles.css` were built from this repository: `gh attestation verify main.js -R dbraendle/obsidian-keyhole`.
 
 ## Limitations

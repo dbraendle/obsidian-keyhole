@@ -1,6 +1,6 @@
 # Keyhole – concept
 
-Status: v0.1, November 2026. This document records the decisions behind Keyhole and the traps that shaped them.
+Status: v0.4, November 2026. This document records the decisions behind Keyhole and the traps that shaped them.
 
 ## Goal
 
@@ -28,7 +28,8 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 ### 2. Credentials never touch the vault
 
 - Tokens and secret keys live in Obsidian's keychain (`app.secretStorage`, 1.11.4+), which is device-local: encrypted with the OS keychain on desktop and native secure storage on mobile.
-- `data.json` (which may be synced or committed) holds only the *name* of the keychain entry.
+- `data.json` (which may be synced or committed) holds only the *name* of the keychain entry. The names are fixed in the code; the setting is never used to choose which entry is read.
+- Each secret is bound to the origin it was saved for (a second keychain entry, `<name>-host`). The storage URL is a synced setting, so without the binding anyone who can change `data.json` could redirect a bearer token or Basic password to their own server. On a mismatch Keyhole refuses and asks for the secret again.
 - The DOM only ever sees `blob:` URLs, or short-lived signed URLs for streaming that carry a signature, never a token.
 - Error messages never echo headers or signed URLs.
 
@@ -76,30 +77,27 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 
 ## Known limits and open questions
 
-- **Mobile is not yet verified on devices.** Verify on iOS and Android:
-  - the scheme renders as `<img>`;
-  - paste works;
-  - the multi-select picker works, including HEIC → JPEG conversion on iOS;
-  - the share sheet works for downloads.
+- **Android is not yet verified on a device.** iOS (iPhone) is. On Android, verify that the scheme renders as `<img>`, paste, the multi-select picker and the share sheet for downloads.
 - **`requestUrl` buffers everything.** Very large uploads can crash mobile apps (reports at 20–100 MB). The default limit is 100 MB; consider a lower mobile default.
 - **iOS ignores user-installed CA certificates** for `requestUrl`. Self-hosted servers need a publicly trusted certificate (Let's Encrypt).
 - **Surfaces that render their own `<img>` from the raw link** (e.g. Bases card covers) may not be covered.
 - **Plain WebDAV cannot stream video**; it downloads the file fully. Use S3 or the Keyhole server for large media.
 - **Videos that are not cached do not play offline.**
-- **Deleting a link does not delete the file.** Orphan cleanup needs listing, and is planned.
+- **Deleting a link does not delete the file.** "Clean up storage" lists unused files; it only offers keys that have the shape Keyhole writes under the vault's prefix.
+- **The provider sees plaintext and file names.** Keys contain the file name. See the roadmap for end-to-end encryption.
+- **The offline cache is not encrypted** and survives removing the plugin (Obsidian has no uninstall hook).
+- **No isolation between plugins.** Any plugin in the vault can read the keychain and blob URLs. This is Obsidian's model, not something Keyhole can change.
 
 ## Roadmap
 
-1. **v0.2**
-   - Command to move a note's local attachments to Keyhole (for files shared into the vault on mobile).
-   - Show the cache status in settings.
-   - Offline marker on video.
-2. **v0.3**
-   - Optional client-side end-to-end encryption (AES-GCM, key in the keychain). Storage providers would see only ciphertext. Streaming then requires full download.
-   - Orphan report.
-3. **Later**
+Done: moving a note's local attachments (0.2), image shrinking (0.2), the way back into the vault and storage clean-up (0.4).
+
+1. **Next**
+   - Uploads in parts (S3 multipart), so large files do not have to fit into memory on phones.
+   - Optional client-side end-to-end encryption (AES-GCM, key in the keychain). Storage providers would see only ciphertext, and keys would no longer carry file names. Streaming then requires a full download.
+2. **Later**
    - Several storages at the same time (the alias is already in the link).
-   - Image resizing/WebP before upload.
+   - Show the cache status in settings; offline marker on video.
    - Bases covers.
 
 ## Guidelines compliance

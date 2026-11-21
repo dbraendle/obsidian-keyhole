@@ -14,6 +14,7 @@ import { Migrator } from "./migrate";
 import { FileActions } from "./files";
 import { LocalAttachmentHint } from "./hint";
 import { initLanguage, t } from "./i18n";
+import { bindingId, checkBinding, hostOf, HTTP_SECRET_ID, originOf, S3_SECRET_ID } from "./secrets";
 
 const MB = 1024 * 1024;
 const LINK_RE = /keyhole:\/\/[a-z0-9-]+\/[^\s)\]"'<>]+/gi;
@@ -31,6 +32,7 @@ export default class KeyholePlugin extends Plugin {
 	async onload(): Promise<void> {
 		initLanguage();
 		await this.loadSettings();
+		this.adoptSecretBindings();
 
 		this.cache = new FileCache(`keyhole-cache/${this.app.vault.getName()}`);
 		this.resolver = new Resolver(
@@ -134,17 +136,13 @@ export default class KeyholePlugin extends Plugin {
 		});
 
 		this.app.workspace.onLayoutReady(() => {
-			this.renderer.observe(activeDocument);
-			this.applyDisplaySettings(activeDocument);
-			this.attachWindow(activeWindow);
+			// Every window that shows notes: the main one and pop-outs. Not "the active window":
+			// when Keyhole is switched on, that is the settings window, which shows no notes.
+			const windows = new Set<Window>([this.app.workspace.containerEl.win]);
+			this.app.workspace.iterateAllLeaves((leaf) => windows.add(leaf.view.containerEl.win));
+			for (const win of windows) this.watchWindow(win);
 			hint.update();
-			this.registerEvent(
-				this.app.workspace.on("window-open", (_win, win) => {
-					this.renderer.observe(win.document);
-					this.applyDisplaySettings(win.document);
-					this.attachWindow(win);
-				}),
-			);
+			this.registerEvent(this.app.workspace.on("window-open", (_win, win) => this.watchWindow(win)));
 			if (Platform.isMobile) this.offerMobileToolbar();
 		});
 
@@ -202,6 +200,16 @@ export default class KeyholePlugin extends Plugin {
 		});
 	}
 
+	private readonly watched = new WeakSet<Window>();
+
+	private watchWindow(win: Window): void {
+		if (this.watched.has(win)) return;
+		this.watched.add(win);
+		this.renderer.observe(win.document);
+		this.applyDisplaySettings(win.document);
+		this.attachWindow(win);
+	}
+
 	/**
 	 * Per window: a context menu for Keyhole files, and opening keyhole:// links
 	 * (Obsidian hands external links to window.open, which cannot load our scheme).
@@ -223,8 +231,9 @@ export default class KeyholePlugin extends Plugin {
 		);
 
 		const original = win.open.bind(win);
+		let active = true;
 		const patched = (url?: string | URL, target?: string, features?: string): WindowProxy | null => {
-			const ref = parseUrl(typeof url === "string" ? url : url?.toString());
+			const ref = active ? parseUrl(typeof url === "string" ? url : url?.toString()) : null;
 			if (ref) {
 				this.files.open(ref, this.app.workspace.getActiveFile());
 				return null;
@@ -233,7 +242,10 @@ export default class KeyholePlugin extends Plugin {
 		};
 		win.open = patched;
 		this.register(() => {
-			win.open = original;
+			// Another plugin may have wrapped window.open after us: then leave the chain
+			// alone and only stop acting, instead of cutting its wrapper out.
+			active = false;
+			if (win.open === patched) win.open = original;
 		});
 	}
 
@@ -281,22 +293,52 @@ export default class KeyholePlugin extends Plugin {
 				bucket: s.s3Bucket,
 				pathStyle: s.s3PathStyle,
 				accessKeyId: s.s3AccessKeyId,
-				secretAccessKey: this.secret(s.s3SecretKeyRef, t("storage.secretS3")),
+				secretAccessKey: this.secret(S3_SECRET_ID, s.s3Endpoint, t("storage.secretS3")),
 			});
 		}
 		return new HttpBackend({
 			baseUrl: s.httpUrl,
 			auth: s.storageType === "keyhole" ? "bearer" : s.httpAuth,
 			username: s.httpUsername,
-			secret: this.secret(s.httpSecretRef, t("storage.secretHttp")),
+			secret: this.secret(HTTP_SECRET_ID, s.httpUrl, t("storage.secretHttp")),
 			keyholeServer: s.storageType === "keyhole",
 		});
 	}
 
-	private secret(ref: string, what: string): string {
-		const value = ref ? this.app.secretStorage.getSecret(ref) : null;
+	/**
+	 * Reads a secret from the keychain, but only for the host it was saved for:
+	 * the storage address is a (possibly synced) setting, the secret is not.
+	 */
+	private secret(id: string, url: string, what: string): string {
+		const value = this.app.secretStorage.getSecret(id);
 		if (!value) throw new StorageError(t("storage.noSecret", { what }));
+		const bound = this.app.secretStorage.getSecret(bindingId(id));
+		if (checkBinding(bound, url) !== "ok") {
+			throw new StorageError(
+				bound
+					? t("storage.secretOtherHost", { what, host: hostOf(bound) })
+					: t("storage.secretUnbound", { what }),
+			);
+		}
 		return value;
+	}
+
+	/** Remembers in the keychain which host a secret belongs to. Called when a secret is saved. */
+	bindSecret(id: string, url: string): void {
+		const origin = originOf(url);
+		if (origin) this.app.secretStorage.setSecret(bindingId(id), origin);
+	}
+
+	/** Secrets saved by versions before 0.4.6 have no host yet: bind them to the configured one, once. */
+	private adoptSecretBindings(): void {
+		const s = this.settings;
+		for (const [id, url] of [
+			[S3_SECRET_ID, s.s3Endpoint],
+			[HTTP_SECRET_ID, s.httpUrl],
+		] as const) {
+			const storage = this.app.secretStorage;
+			if (storage.getSecret(id) && !storage.getSecret(bindingId(id))) this.bindSecret(id, url);
+		}
 	}
 
 	async clearCache(): Promise<void> {
@@ -342,29 +384,37 @@ export default class KeyholePlugin extends Plugin {
 		window.setTimeout(() => notice.hide(), 6000);
 	}
 
-	private coreConfig(): { get(key: string): unknown; set(key: string, value: unknown): void } {
+	/** Null if this Obsidian version does not have the (non-public) core settings accessors. */
+	private coreConfig(): { get(key: string): unknown; set(key: string, value: unknown): void } | null {
 		// Not part of the public API: Vault#getConfig/setConfig hold the core settings.
 		const vault = this.app.vault as unknown as {
-			getConfig(key: string): unknown;
-			setConfig(key: string, value: unknown): void;
+			getConfig?: (key: string) => unknown;
+			setConfig?: (key: string, value: unknown) => void;
 		};
-		return { get: (key) => vault.getConfig(key), set: (key, value) => vault.setConfig(key, value) };
+		if (typeof vault.getConfig !== "function" || typeof vault.setConfig !== "function") return null;
+		return { get: (key) => vault.getConfig?.(key), set: (key, value) => vault.setConfig?.(key, value) };
 	}
 
-	private toolbarCommands(): string[] {
-		const value = this.coreConfig().get("mobileToolbarCommands");
+	private toolbarCommands(config: { get(key: string): unknown }): string[] {
+		const value = config.get("mobileToolbarCommands");
 		return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 	}
 
 	/** Puts the upload button right after the paper clip in the mobile toolbar. */
 	addToMobileToolbar(): void {
-		this.coreConfig().set("mobileToolbarCommands", placeAfterAttach(this.toolbarCommands()));
+		const config = this.coreConfig();
+		if (!config) {
+			new Notice(t("notice.toolbarUnavailable"));
+			return;
+		}
+		config.set("mobileToolbarCommands", placeAfterAttach(this.toolbarCommands(config)));
 		new Notice(t("notice.toolbarAdded"));
 	}
 
 	/** Asks once (per vault, synced) whether to place the upload button in the mobile toolbar. */
 	private offerMobileToolbar(): void {
-		if (this.settings.toolbarPrompted || isPlacedAfterAttach(this.toolbarCommands())) return;
+		const config = this.coreConfig();
+		if (!config || this.settings.toolbarPrompted || isPlacedAfterAttach(this.toolbarCommands(config))) return;
 		new ConfirmModal(
 			this.app,
 			t("toolbar.title"),

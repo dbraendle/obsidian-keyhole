@@ -21,6 +21,8 @@ export const en = {
 	"notice.offlineTooLarge": ", {count} larger than the cache limit",
 	"notice.offlineFailed": ", {count} failed",
 	"notice.toolbarAdded": "Keyhole: upload button added to the mobile toolbar, next to the paper clip.",
+	"notice.toolbarUnavailable":
+		"Keyhole: this version of Obsidian does not let plugins change the mobile toolbar. Add the command \"Upload files\" under Settings → Toolbar.",
 	"notice.error": "Keyhole: {message}",
 	"notice.skippedTooLarge": "Keyhole: skipped {count} file(s) over {max} MB.",
 	"notice.uploadingMany": "Keyhole: uploading {count} files…",
@@ -68,6 +70,9 @@ export const en = {
 
 	// Storage errors
 	"storage.noSecret": "No {what} on this device yet. Add it in the Keyhole settings.",
+	"storage.secretOtherHost":
+		"The {what} on this device was saved for {host}, but the settings now point to another server. If that is intended, enter it again in the Keyhole settings.",
+	"storage.secretUnbound": "Enter the {what} again in the Keyhole settings (it is not linked to this server yet).",
 	"storage.secretS3": "secret access key",
 	"storage.secretHttp": "token or password",
 	"storage.uploadFailed": "Upload failed",
@@ -122,6 +127,8 @@ export const en = {
 	"settings.secret.saved": "Saved on this device. Paste a new value to replace it.",
 	"settings.secret.missing":
 		"Paste it here and press Save. It is kept in this device's keychain only, never in your vault, so do this once on every device.",
+	"settings.secret.otherHost":
+		"The value saved on this device belongs to another server address and is not used. If the new address is correct, paste it again and press Save.",
 	"settings.secret.placeholder": "Paste here",
 	"settings.secret.save": "Save",
 	"settings.uploads": "Uploads",
@@ -204,7 +211,7 @@ export const en = {
 	"cleanup.explain":
 		"Only notes in this vault are checked. Files uploaded in the last {days} days are hidden, because notes on other devices may not have synced yet.",
 	"cleanup.noPrefix":
-		"Your storage has no folder for this vault (see Key prefix). If other vaults or apps use the same storage, their files show up here as well – check carefully.",
+		"Your storage has no folder for this vault (see Key prefix). Only files that look like Keyhole uploads are listed, but if another vault uses the same storage without a prefix, its files show up here as well – check carefully.",
 	"cleanup.includeRecent": "Also show files from the last {days} days",
 	"cleanup.onlyRecent": "Nothing older than {days} days. 1 unused file is from the last {days} days – turn on the switch above to see it.|Nothing older than {days} days. {count} unused files are from the last {days} days – turn on the switch above to see them.",
 	"cleanup.nothing": "Nothing to clean up.",

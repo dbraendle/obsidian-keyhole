@@ -262,7 +262,7 @@ export class Renderer {
 		const loading = pages.createDiv({ cls: "keyhole-pdf-loading", text: t("render.loading") });
 		try {
 			const [pdfjs, blob] = await Promise.all([loadPdfJs() as Promise<PdfJs>, this.resolver.blob(ref)]);
-			const doc = await pdfjs.getDocument({ data: await blob.arrayBuffer() }).promise;
+			const doc = await pdfjs.getDocument({ data: await blob.arrayBuffer(), isEvalSupported: false }).promise;
 			pageCount.setText(t("render.pages", { count: doc.numPages }));
 			loading.remove();
 			// Placeholders get the first page's proportions, so nothing jumps while scrolling.
@@ -335,7 +335,8 @@ interface PdfDocument {
 	getPage(n: number): Promise<PdfPage>;
 }
 interface PdfJs {
-	getDocument(opts: { data: ArrayBuffer }): { promise: Promise<PdfDocument> };
+	// isEvalSupported: false keeps pdf.js from compiling code out of the document (font programs).
+	getDocument(opts: { data: ArrayBuffer; isEvalSupported: boolean }): { promise: Promise<PdfDocument> };
 }
 
 /** The name people gave the file (alt text without a size suffix), else the name from the key. */

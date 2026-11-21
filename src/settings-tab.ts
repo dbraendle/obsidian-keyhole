@@ -1,6 +1,7 @@
 import { Notice, PluginSettingTab, type App, type Setting, type SettingDefinitionItem } from "obsidian";
 import { t } from "./i18n";
 import type KeyholePlugin from "./main";
+import { bindingId, checkBinding, HTTP_SECRET_ID, S3_SECRET_ID } from "./secrets";
 
 export class KeyholeSettingTab extends PluginSettingTab {
 	constructor(
@@ -71,7 +72,7 @@ export class KeyholeSettingTab extends PluginSettingTab {
 					{
 						name: t("settings.secretAccessKey"),
 						visible: isS3,
-						render: (setting) => this.renderSecret(setting, "s3SecretKeyRef", "keyhole-s3-secret"),
+						render: (setting) => this.renderSecret(setting, "s3SecretKeyRef", S3_SECRET_ID),
 					},
 					{
 						name: t("settings.serverUrl"),
@@ -96,7 +97,7 @@ export class KeyholeSettingTab extends PluginSettingTab {
 					{
 						name: t("settings.tokenOrPassword"),
 						visible: isHttp,
-						render: (setting) => this.renderSecret(setting, "httpSecretRef", "keyhole-server-secret"),
+						render: (setting) => this.renderSecret(setting, "httpSecretRef", HTTP_SECRET_ID),
 					},
 					{
 						name: t("settings.test"),
@@ -248,17 +249,15 @@ export class KeyholeSettingTab extends PluginSettingTab {
 	 * have to invent a keychain id or go through the generic keychain dialog.
 	 * Only the id is stored in data.json.
 	 */
-	private renderSecret(setting: Setting, refKey: "s3SecretKeyRef" | "httpSecretRef", defaultId: string): void {
+	private renderSecret(setting: Setting, refKey: "s3SecretKeyRef" | "httpSecretRef", id: string): void {
 		const settings = this.plugin.settings;
-		const stored = () => {
-			const ref = settings[refKey];
-			return Boolean(ref && this.app.secretStorage.getSecret(ref));
-		};
+		const address = () => (refKey === "s3SecretKeyRef" ? settings.s3Endpoint : settings.httpUrl);
+		const stored = () => Boolean(this.app.secretStorage.getSecret(id));
+		// A secret saved for another host is not used: say so, instead of "saved".
+		const usable = () => stored() && checkBinding(this.app.secretStorage.getSecret(bindingId(id)), address()) === "ok";
 		const describe = () =>
 			setting.setDesc(
-				stored()
-					? t("settings.secret.saved")
-					: t("settings.secret.missing"),
+				usable() ? t("settings.secret.saved") : stored() ? t("settings.secret.otherHost") : t("settings.secret.missing"),
 			);
 		describe();
 		let value = "";
@@ -276,8 +275,8 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						new Notice(t("notice.pasteFirst"));
 						return;
 					}
-					const id = settings[refKey] || defaultId;
 					this.app.secretStorage.setSecret(id, value);
+					this.plugin.bindSecret(id, address());
 					await this.setControlValue(refKey, id);
 					value = "";
 					const input = setting.controlEl.querySelector("input");
