@@ -1,9 +1,5 @@
 /* Keyhole: private remote attachments */
 
-.keyhole-hidden {
-	display: none !important;
-}
-
 img.keyhole-loading {
 	min-width: 48px;
 	min-height: 48px;
@@ -21,12 +17,15 @@ img.keyhole-loading {
 /*
  * Obsidian wraps embeds in shrink-to-fit containers (inline-flex), which collapse
  * audio and cards and let PDFs grow to their pixel width. Force them to full width.
+ * The editor selectors mirror Obsidian's own rules, plus our class to win on specificity.
  */
 .keyhole-parent,
-.image-embed:has(> .image-wrapper > .keyhole-embed),
-.image-wrapper:has(> .keyhole-embed) {
-	display: block !important;
-	width: 100% !important;
+.cm-content .image-embed.keyhole-parent,
+.cm-content .image-embed .image-wrapper.keyhole-parent,
+.cm-line > .image-embed.keyhole-parent,
+.cm-line > .image-embed .image-wrapper.keyhole-parent {
+	display: block;
+	width: 100%;
 	max-width: 100%;
 	min-width: 0;
 }

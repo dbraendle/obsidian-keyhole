@@ -250,7 +250,7 @@ export async function main(): Promise<void> {
 	server.requestTimeout = 0; // large uploads on slow mobile connections
 	server.listen(config.port, config.host, () => {
 		// Never log tokens or request URLs (signed URLs carry signatures).
-		console.log(`keyhole-server listening on ${config.host}:${config.port}, data in ${resolve(config.dataDir)}`);
+		process.stdout.write(`keyhole-server listening on ${config.host}:${config.port}, data in ${resolve(config.dataDir)}\n`);
 	});
 	const stop = () => server.close(() => process.exit(0));
 	process.on("SIGTERM", stop);
