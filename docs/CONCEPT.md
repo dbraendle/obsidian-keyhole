@@ -78,7 +78,7 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 ## Known limits and open questions
 
 - **Android is not yet verified on a device.** iOS (iPhone) is. On Android, verify that the scheme renders as `<img>`, paste, the multi-select picker and the share sheet for downloads.
-- **`requestUrl` buffers everything.** Very large uploads can crash mobile apps (reports at 20–100 MB). The default limit is 100 MB; consider a lower mobile default.
+- **`requestUrl` buffers everything.** A request body cannot be streamed. S3 uploads over 16 MB therefore go up as a multipart upload in 8 MB parts, with the content hash computed incrementally (Web Crypto can only hash a complete buffer). The Keyhole server and WebDAV still take one request per file, and downloads are always buffered as a whole.
 - **iOS ignores user-installed CA certificates** for `requestUrl`. Self-hosted servers need a publicly trusted certificate (Let's Encrypt).
 - **Surfaces that render their own `<img>` from the raw link** (e.g. Bases card covers) may not be covered.
 - **Plain WebDAV cannot stream video**; it downloads the file fully. Use S3 or the Keyhole server for large media.
@@ -93,7 +93,7 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 Done: moving a note's local attachments (0.2), image shrinking (0.2), the way back into the vault and storage clean-up (0.4).
 
 1. **Next**
-   - Uploads in parts (S3 multipart), so large files do not have to fit into memory on phones.
+   - Uploads in parts for the Keyhole server too (S3 has them since 0.5).
    - Optional client-side end-to-end encryption (AES-GCM, key in the keychain). Storage providers would see only ciphertext, and keys would no longer carry file names. Streaming then requires a full download.
 2. **Later**
    - Several storages at the same time (the alias is already in the link).

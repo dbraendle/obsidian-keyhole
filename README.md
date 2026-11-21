@@ -114,7 +114,7 @@ Keyhole connects **only** to the storage you configure, to upload and download y
 - Without Keyhole installed, the embeds show as broken images. The links contain the file name, so nothing is lost, and *Bring all Keyhole files back* restores normal attachments at any time.
 - Obsidian Publish cannot show Keyhole files.
 - Plain WebDAV downloads media completely before playback. Use S3 or the Keyhole server for large videos.
-- On mobile, very large files can run into memory limits during upload. The default maximum is 100 MB.
+- Large files: on S3-compatible storage, files over 16 MB are uploaded in parts of 8 MB, so they do not have to fit into memory. The Keyhole server and WebDAV take a file in one request; on phones, very large files can run into memory limits there. The default maximum is 100 MB (*Maximum upload size*).
 
 ## Development
 

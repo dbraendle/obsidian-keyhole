@@ -1,6 +1,7 @@
 import { sha256Hex } from "../crypto";
 import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend, type StoredObject } from "./backend";
 import { parseS3List } from "./listing";
+import { multipartUpload } from "./multipart";
 import { presignUrl, signHeaders, type Credentials } from "./sigv4";
 import { t } from "../i18n";
 
@@ -57,6 +58,16 @@ export class S3Backend implements StorageBackend {
 			payloadHash: await sha256Hex(data),
 		});
 		await http({ url: url.toString(), method: "PUT", headers, body: data }, t("storage.uploadFailed"));
+	}
+
+	async putBlob(key: string, data: Blob, contentType: string): Promise<void> {
+		const what = t("storage.uploadFailed");
+		try {
+			await multipartUpload((request) => http(request, what), this.creds, this.objectUrl(key), data, contentType);
+		} catch (err) {
+			if (err instanceof StorageError) throw err;
+			throw new StorageError(`${what}: ${err instanceof Error ? err.message : t("error.unknown")}`);
+		}
 	}
 
 	async get(key: string): Promise<ArrayBuffer> {

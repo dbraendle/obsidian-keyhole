@@ -11,7 +11,7 @@ function unescapeXml(text: string): string {
 		.replace(/&amp;/g, "&");
 }
 
-function tag(xml: string, name: string): string | null {
+export function tag(xml: string, name: string): string | null {
 	const m = new RegExp(`<(?:[\\w-]+:)?${name}\\b[^>]*>([\\s\\S]*?)</(?:[\\w-]+:)?${name}>`, "i").exec(xml);
 	return m ? unescapeXml(m[1] ?? "") : null;
 }

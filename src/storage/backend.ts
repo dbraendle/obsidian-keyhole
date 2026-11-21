@@ -5,6 +5,11 @@ export interface StorageBackend {
 	/** Stable, non-secret identity of the storage location (used to namespace the cache). */
 	readonly fingerprint: string;
 	put(key: string, data: ArrayBuffer, contentType: string): Promise<void>;
+	/**
+	 * Uploads a file without holding all of it in memory (in parts). Only backends that
+	 * can do this have it; large files go through put() everywhere else.
+	 */
+	putBlob?(key: string, data: Blob, contentType: string): Promise<void>;
 	get(key: string): Promise<ArrayBuffer>;
 	/**
 	 * A short-lived URL a media element can load directly (for streaming audio and

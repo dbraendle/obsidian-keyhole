@@ -10,6 +10,8 @@
 import { EMPTY_SHA256, presignUrl, signHeaders } from "../../src/storage/sigv4";
 import { sha256Hex } from "../../src/crypto";
 import { parseS3List } from "../../src/storage/listing";
+import { multipartUpload, type Send } from "../../src/storage/multipart";
+import { sha256HexOfBlob } from "../../src/sha256";
 
 const env = (name: string): string => {
 	const value = process.env[name];
@@ -65,3 +67,21 @@ const deleted = await call("DELETE", path);
 const gone = await call("GET", path);
 console.log("delete:", deleted.status, "then get:", gone.status);
 if (!found || !deleted.ok || gone.ok) process.exit(1);
+
+// Multipart: 11 MB in parts of 5 MB (the smallest S3 allows), read back and compared by hash.
+const big = new Uint8Array(11 * 1024 * 1024);
+for (let i = 0; i < big.length; i++) big[i] = (i * 31 + 7) % 251;
+const bigKey = "2026/11/fedcba9876543210-multipart.bin";
+const bigUrl = new URL(`${endpoint}/${bucket}/${bigKey}`);
+const send: Send = async (request) => {
+	const res = await fetch(request.url, { method: request.method, headers: request.headers, body: request.body });
+	const text = await res.text();
+	if (!res.ok) throw new Error(`${request.method} ${res.status}: ${text}`);
+	return { text, headers: Object.fromEntries(res.headers.entries()) };
+};
+await multipartUpload(send, creds, bigUrl, new Blob([big]), "application/octet-stream", 5 * 1024 * 1024);
+const bigBack = await call("GET", `/${bucket}/${bigKey}`);
+const same = (await sha256HexOfBlob(await bigBack.blob())) === (await sha256Hex(big));
+console.log("multipart:", bigBack.status, same ? "content ok" : "CONTENT MISMATCH");
+await call("DELETE", `/${bucket}/${bigKey}`);
+if (!bigBack.ok || !same) process.exit(1);

@@ -88,8 +88,9 @@ export class Resolver {
 	}
 
 	/** Called after an upload: the bytes are already here, so cache them right away. */
-	async prime(ref: KeyholeRef, data: ArrayBuffer): Promise<void> {
+	async prime(ref: KeyholeRef, data: ArrayBuffer | Blob): Promise<void> {
 		const opts = this.options();
+		// A Blob (e.g. a picked file) is referenced, not copied into memory.
 		const blob = new Blob([data], { type: mimeOf(ref.key) });
 		const id = this.cacheId(ref.key);
 		this.remember(id, blob);

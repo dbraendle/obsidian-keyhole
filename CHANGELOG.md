@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Large files on S3-compatible storage are uploaded in parts (multipart upload, 8 MB each, for files over 16 MB). Only one part is in memory at a time, which avoids crashes with big videos on phones. If a part fails, the unfinished upload is aborted, so no leftovers are stored.
+- Keys stay the same: the content hash is now computed piece by piece for large files.
+
 ## 0.4.6
 
 Hardening after a security review. No change to notes or links.
