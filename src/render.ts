@@ -65,7 +65,7 @@ export class Renderer {
 				if (!src) return;
 				const next = img.nextElementSibling;
 				if (next?.instanceOf(HTMLElement) && next.hasClass("keyhole-embed")) next.remove();
-				img.removeClass("keyhole-hidden");
+				img.show();
 				delete img.dataset.keyholeRetried;
 				// Setting src fires the MutationObserver, which renders the embed again.
 				img.setAttribute("src", src);
@@ -81,7 +81,7 @@ export class Renderer {
 				if (!img?.instanceOf(HTMLImageElement)) return;
 				const src = img.dataset.keyholeSrc;
 				status.remove();
-				img.removeClass("keyhole-hidden");
+				img.show();
 				delete img.dataset.keyholeRetried;
 				if (src) img.setAttribute("src", src);
 				this.processImage(img);
@@ -120,7 +120,8 @@ export class Renderer {
 			const url = await this.resolver.blobUrl(ref);
 			// The element may have been reused for another file while we were loading.
 			if (img.dataset.keyholeSrc !== src) return;
-			img.removeClass("keyhole-loading", "keyhole-hidden");
+			img.removeClass("keyhole-loading");
+			img.show();
 			img.nextElementSibling?.hasClass("keyhole-status") && img.nextElementSibling.remove();
 			// If the cached bytes turn out to be unreadable, drop them and download once more.
 			if (!retried) {
@@ -144,7 +145,7 @@ export class Renderer {
 
 	/** Places a container next to the (hidden) <img>; Obsidian keeps owning the <img>. */
 	private container(img: HTMLImageElement, ref: KeyholeRef, cls: string): HTMLElement | null {
-		img.addClass("keyhole-hidden");
+		img.hide();
 		const src = img.dataset.keyholeSrc ?? "";
 		const next = img.nextElementSibling;
 		if (next?.instanceOf(HTMLElement) && next.hasClass("keyhole-embed")) {

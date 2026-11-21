@@ -101,6 +101,9 @@ Keyhole connects **only** to the storage you configure, to upload and download y
 - Secrets are stored in Obsidian's keychain on each device.
 - The offline cache lives in the app's local storage (IndexedDB) on each device, outside your vault.
 - To stream audio and video, Keyhole gives the media player a signed link that expires after a few hours. This is a presigned URL for S3, or an HMAC-signed URL for the Keyhole server. These links exist only while the note is open and are never written to your notes.
+- **Reading your notes:** "Clean up storage" and "Restore all notes" go through every note in the vault, to find which stored files are still linked and which notes contain Keyhole links. Keyhole only looks for `keyhole://` links and never sends note contents anywhere.
+- **Clipboard:** when you paste, Keyhole checks whether the clipboard holds files (which it uploads) or text (which it leaves to Obsidian). It writes to the clipboard only when you choose "Copy link" on a file.
+- **Release files** carry GitHub artifact attestations, so you can check that `main.js` and `styles.css` were built from this repository: `gh attestation verify main.js -R dbraendle/obsidian-keyhole`.
 
 ## Limitations
 

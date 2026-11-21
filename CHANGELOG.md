@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.5
+
+- Release files come with GitHub artifact attestations (verifiable build provenance).
+- Styles no longer use `!important` or `:has()` (faster style updates, easier for themes to override).
+- README explains why Keyhole reads all notes (clean-up, restore) and the clipboard (paste, copy link).
+
 ## 0.4.4
 
 - "Clear offline cache" also reloads the files in open notes, so they come fresh from storage right away.
