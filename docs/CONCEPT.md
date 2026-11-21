@@ -56,7 +56,7 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 
 - All HTTP goes through `requestUrl`, which bypasses CORS on desktop and mobile, so no bucket CORS setup is needed.
 - No AWS SDK: bundle size, and the SDK's fetch handler fails CORS.
-- The **Keyhole server** (`server/`) exists because plain WebDAV cannot stream to `<video>`: media elements cannot send an Authorization header. It adds short-lived signed URLs, Range support and hardened response headers (`nosniff`, CSP sandbox).
+- The **Keyhole server** ([dbraendle/keyhole-server](https://github.com/dbraendle/keyhole-server), its own repository since November 2026) exists because plain WebDAV cannot stream to `<video>`: media elements cannot send an Authorization header. It adds short-lived signed URLs, Range support and hardened response headers (`nosniff`, CSP sandbox).
 
 ### 5. Uploads
 

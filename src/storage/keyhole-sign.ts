@@ -6,7 +6,8 @@
  * token itself, only an HMAC over method, key and expiry, made with a key
  * derived from the token. The server derives the same key and checks it.
  *
- * MUST stay in sync with server/src/sign.ts.
+ * MUST stay in sync with src/sign.ts of dbraendle/keyhole-server. Both repositories
+ * test the same fixed vector.
  */
 import { hmac, hmacHex } from "../crypto";
 

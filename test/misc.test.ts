@@ -4,13 +4,12 @@ import { kindOf, mimeOf, extensionForMime } from "../src/mime";
 import { nameFor, shouldUpload } from "../src/upload-rules";
 import { DEFAULT_SETTINGS } from "../src/settings";
 import { signKey as pluginSign } from "../src/storage/keyhole-sign";
-import { signKey as serverSign } from "../server/src/sign";
 
 describe("signed URLs", () => {
-	it("plugin and server compute the same signature", async () => {
-		const token = "t".repeat(64);
-		expect(await pluginSign(token, "GET", "2026/11/a-b.mp4", 1_800_000_000)).toBe(
-			serverSign(token, "GET", "2026/11/a-b.mp4", 1_800_000_000),
+	// The same vector is tested in dbraendle/keyhole-server (test/server.test.ts).
+	it("match the fixed vector shared with the Keyhole server", async () => {
+		expect(await pluginSign("t".repeat(64), "GET", "2026/11/a-b.mp4", 1_800_000_000)).toBe(
+			"ee4eae0625e36cfcb6c0ccb6b4440aa4cd0291a0add370a35217717eaf02d0d9",
 		);
 	});
 });

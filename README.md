@@ -24,7 +24,7 @@ Keep your attachments on your own private storage. Drop or paste an image, PDF, 
 | Storage | Examples |
 |---|---|
 | S3-compatible | AWS S3, Cloudflare R2, Backblaze B2, Wasabi, Garage, SeaweedFS, MinIO |
-| Keyhole server | The small server in [`server/`](server/): one file, no dependencies, Docker image |
+| Keyhole server | [keyhole-server](https://github.com/dbraendle/keyhole-server): a small server of its own, no dependencies, Docker image |
 | WebDAV | Nextcloud, Synology, rclone `serve webdav`, Caddy, nginx |
 
 Keep your bucket **private**. Keyhole never needs public access, and it needs no CORS configuration.
@@ -63,7 +63,7 @@ docker run -d -p 127.0.0.1:8080:8080 -v keyhole-data:/data \
   -e KEYHOLE_TOKENS="$(openssl rand -hex 32)" ghcr.io/dbraendle/keyhole-server:latest
 ```
 
-Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-installed ones). Then use `https://your-host/f/` as the server URL. See [server/README.md](server/README.md).
+Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-installed ones). Then use `https://your-host/f/` as the server URL. See the [keyhole-server repository](https://github.com/dbraendle/keyhole-server).
 
 ## Using it
 

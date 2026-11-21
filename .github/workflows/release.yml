@@ -1,8 +1,8 @@
 name: Release
 
 # Every push to main whose manifest version has no release yet publishes that
-# version: plugin files as a GitHub release (what BRAT and Obsidian install) and
-# the server image on GHCR. Pushes without a version bump (docs, refactors) do nothing.
+# version: the plugin files as a GitHub release (what BRAT and Obsidian install).
+# Pushes without a version bump (docs, refactors) do nothing.
 # main is protected: changes arrive through pull requests with green CI.
 
 on:
@@ -70,26 +70,3 @@ jobs:
         run: |
           gh release create "$VERSION" main.js manifest.json styles.css \
             --target "$GITHUB_SHA" --title "$VERSION" --generate-notes
-
-  server-image:
-    needs: [version, plugin]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        with:
-          context: server
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/keyhole-server:${{ needs.version.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/keyhole-server:latest
