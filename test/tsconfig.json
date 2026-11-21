@@ -5,5 +5,5 @@
 		"allowImportingTsExtensions": true,
 		"noEmit": true
 	},
-	"include": ["../src/**/*.ts", "./**/*.ts", "../server/src/**/*.ts"]
+	"include": ["../src/**/*.ts", "./**/*.ts"]
 }
