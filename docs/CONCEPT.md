@@ -75,6 +75,19 @@ Keyhole's niche: standards-based storage (S3-compatible *and* a token-protected 
 - LRU, with a size limit and a per-file limit.
 - Files are cached when viewed and after upload. The command "Keep attachments of the current note on this device" prefetches a note.
 
+### 7. End-to-end encryption (in progress)
+
+Optional. With it, the storage provider sees only ciphertext and no file names.
+
+- **File format "KHE1"** (`src/e2e/format.ts`, done): 4 bytes magic, 16 bytes random salt, then the plaintext in 1 MiB chunks, each sealed with AES-256-GCM. The file key is HKDF-SHA256(vault key, salt). The nonce is the chunk index plus a last-chunk flag (the STREAM construction, as in age), so chunks cannot be reordered, dropped or cut off unnoticed. Chunks are independent, which allows decrypting a byte range later. Web Crypto only, so it runs on mobile.
+- **Vault key**: 32 random bytes in the device keychain, exported as text (`keyhole-key-v1:…`) for the password manager and the other devices. A non-secret fingerprint in the settings lets another device check that the pasted key is the right one. Losing the key means losing the files; there is no recovery.
+- **Object names**: `{prefix}yyyy/mm/{keyed hash of the content, 32 hex}.khe`. Deterministic per vault key (uploading twice stores once), meaningless without the key.
+- **Open, to be decided before the integration:**
+  - where the file name and type live once they are no longer in the object key (proposal: in the link's fragment, `keyhole://main/2026/11/<id>.khe#photo.jpg`, which never leaves the vault and extends the link format without breaking it);
+  - random key only, or also a passphrase (PBKDF2; weaker, but nothing to copy between devices);
+  - whether the offline cache keeps plaintext (as today) or ciphertext.
+- **Consequences**: no streaming (media is downloaded and decrypted as a whole, until range decryption is built); files uploaded before stay readable and unencrypted until they are moved over.
+
 ## Known limits and open questions
 
 - **Android is not yet verified on a device.** iOS (iPhone) is. On Android, verify that the scheme renders as `<img>`, paste, the multi-select picker and the share sheet for downloads.
