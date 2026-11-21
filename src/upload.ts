@@ -1,5 +1,7 @@
 import { MarkdownView, Notice, TFile, type App, type Editor, type MarkdownFileInfo } from "obsidian";
 import { sha256Hex } from "./crypto";
+import { sha256HexOfBlob } from "./sha256";
+import { MULTIPART_THRESHOLD_BYTES } from "./storage/multipart";
 import { buildKey, markdownEmbed, safeFileName, UPLOADING_ALIAS, type KeyholeRef } from "./link";
 import { extensionForMime, mimeOf } from "./mime";
 import { clipboardIsRichText, nameFor, runLimited, shouldUpload, UPLOAD_CONCURRENCY } from "./upload-rules";
@@ -130,9 +132,8 @@ export class Uploader {
 				name = smaller.name;
 			}
 		}
-		const data = await file.arrayBuffer();
-		const hash = await sha256Hex(data);
-		const ref: KeyholeRef = {
+		const backend = this.ctx.backend();
+		const refFor = (hash: string): KeyholeRef => ({
 			alias: settings.alias,
 			key: buildKey({
 				prefix: settings.keyPrefix,
@@ -140,8 +141,18 @@ export class Uploader {
 				hash,
 				fileName: safeFileName(name, extensionForMime(file.type)),
 			}),
-		};
-		await this.ctx.backend().put(ref.key, data, file.type || mimeOf(ref.key));
+		});
+		// Large files go up in parts where the storage can do that, so they never
+		// have to fit into memory as a whole (phones run out of it).
+		if (file.size > MULTIPART_THRESHOLD_BYTES && backend.putBlob) {
+			const ref = refFor(await sha256HexOfBlob(file));
+			await backend.putBlob(ref.key, file, file.type || mimeOf(ref.key));
+			await this.ctx.resolver.prime(ref, file);
+			return { ref, name, bytes: file.size, originalBytes: original.size };
+		}
+		const data = await file.arrayBuffer();
+		const ref = refFor(await sha256Hex(data));
+		await backend.put(ref.key, data, file.type || mimeOf(ref.key));
 		await this.ctx.resolver.prime(ref, data);
 		return { ref, name, bytes: data.byteLength, originalBytes: original.size };
 	}
