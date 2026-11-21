@@ -17,6 +17,8 @@ export const de: Record<TextKey, string> = {
 	"notice.offlineTooLarge": ", {count} größer als das Limit des Offline-Speichers",
 	"notice.offlineFailed": ", {count} fehlgeschlagen",
 	"notice.toolbarAdded": "Keyhole: Upload-Knopf in die mobile Werkzeugleiste gesetzt, neben die Büroklammer.",
+	"notice.toolbarUnavailable":
+		"Keyhole: Diese Obsidian-Version lässt Plugins die mobile Werkzeugleiste nicht ändern. Füge den Befehl „Dateien hochladen“ unter Einstellungen → Werkzeugleiste hinzu.",
 	"notice.error": "Keyhole: {message}",
 	"notice.skippedTooLarge": "Keyhole: {count} Datei(en) über {max} MB übersprungen.",
 	"notice.uploadingMany": "Keyhole: Lade {count} Dateien hoch …",
@@ -60,6 +62,9 @@ export const de: Record<TextKey, string> = {
 	"error.unknown": "Unbekannter Fehler",
 
 	"storage.noSecret": "Auf diesem Gerät fehlt noch: {what}. Trage es in den Keyhole-Einstellungen ein.",
+	"storage.secretOtherHost":
+		"Auf diesem Gerät ist {what} für {host} gespeichert, die Einstellungen zeigen aber jetzt auf einen anderen Server. Wenn das so gewollt ist, trage es in den Keyhole-Einstellungen neu ein.",
+	"storage.secretUnbound": "Trage in den Keyhole-Einstellungen neu ein: {what} (noch nicht mit diesem Server verknüpft).",
 	"storage.secretS3": "Secret Access Key",
 	"storage.secretHttp": "Token oder Passwort",
 	"storage.uploadFailed": "Upload fehlgeschlagen",
@@ -113,6 +118,8 @@ export const de: Record<TextKey, string> = {
 	"settings.secret.saved": "Auf diesem Gerät gespeichert. Füge einen neuen Wert ein, um ihn zu ersetzen.",
 	"settings.secret.missing":
 		"Hier einfügen und auf Speichern tippen. Der Wert liegt nur im Schlüsselbund dieses Geräts, nie in deinem Vault – also einmal pro Gerät.",
+	"settings.secret.otherHost":
+		"Der auf diesem Gerät gespeicherte Wert gehört zu einer anderen Server-Adresse und wird nicht verwendet. Stimmt die neue Adresse, füge ihn erneut ein und drücke Speichern.",
 	"settings.secret.placeholder": "Hier einfügen",
 	"settings.secret.save": "Speichern",
 	"settings.uploads": "Uploads",
@@ -192,7 +199,7 @@ export const de: Record<TextKey, string> = {
 	"cleanup.explain":
 		"Geprüft werden nur Notizen in diesem Vault. Dateien der letzten {days} Tage sind ausgeblendet, weil Notizen auf anderen Geräten vielleicht noch nicht synchronisiert sind.",
 	"cleanup.noPrefix":
-		"Dein Speicher hat keinen eigenen Ordner für diesen Vault (siehe „Ordner im Speicher“). Nutzen andere Vaults oder Programme denselben Speicher, tauchen deren Dateien hier auch auf – genau hinschauen.",
+		"Dein Speicher hat keinen eigenen Ordner für diesen Vault (siehe „Ordner im Speicher“). Es werden nur Dateien gelistet, die wie Keyhole-Uploads aussehen. Nutzt aber ein anderer Vault denselben Speicher ohne eigenen Ordner, tauchen dessen Dateien hier auch auf – genau hinschauen.",
 	"cleanup.includeRecent": "Auch Dateien der letzten {days} Tage zeigen",
 	"cleanup.onlyRecent": "Nichts, was älter als {days} Tage ist. 1 ungenutzte Datei stammt aus den letzten {days} Tagen – schalte oben den Schalter ein, um sie zu sehen.|Nichts, was älter als {days} Tage ist. {count} ungenutzte Dateien stammen aus den letzten {days} Tagen – schalte oben den Schalter ein, um sie zu sehen.",
 	"cleanup.nothing": "Nichts aufzuräumen.",

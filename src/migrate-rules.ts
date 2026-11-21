@@ -65,3 +65,20 @@ export function formatBytes(bytes: number): string {
 	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
 	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+/**
+ * Does a canvas (its JSON text) show the file at `path`? If the canvas cannot be
+ * read as JSON, any mention of the file name counts: better keep a file than lose it.
+ */
+export function canvasUsesFile(canvasText: string, path: string, name: string): boolean {
+	if (!canvasText.trim()) return false;
+	try {
+		const data = JSON.parse(canvasText) as { nodes?: unknown };
+		if (!Array.isArray(data.nodes)) return false;
+		return (data.nodes as unknown[]).some(
+			(node) => typeof node === "object" && node !== null && (node as { file?: unknown }).file === path,
+		);
+	} catch {
+		return canvasText.includes(name);
+	}
+}

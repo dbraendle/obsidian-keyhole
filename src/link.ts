@@ -96,6 +96,13 @@ export function buildKey(parts: KeyParts): string {
 	return `${prefix}${yyyy}/${mm}/${parts.hash.slice(0, 16)}-${parts.fileName}`;
 }
 
+const UPLOAD_KEY_RE = /^\d{4}\/\d{2}\/[0-9a-f]{16}-[A-Za-z0-9._-]+$/;
+
+/** True if the key has the shape buildKey produces under this (normalized) prefix. */
+export function isUploadKey(key: string, prefix: string): boolean {
+	return isValidKey(key) && key.startsWith(prefix) && UPLOAD_KEY_RE.test(key.slice(prefix.length));
+}
+
 /** "notes" -> "notes/", "/a//b/" -> "a/b/", "" -> "". Drops unsafe segments. */
 export function normalizePrefix(prefix: string): string {
 	const segments = prefix

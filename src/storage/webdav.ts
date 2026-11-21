@@ -1,5 +1,5 @@
 import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend, type StoredObject } from "./backend";
-import { parseDavList } from "./listing";
+import { parseDavList, parseKeyholeList } from "./listing";
 import { signKey } from "./keyhole-sign";
 import { isLocalHost } from "./s3";
 import { t } from "../i18n";
@@ -105,7 +105,7 @@ export class HttpBackend implements StorageBackend {
 		if (this.config.keyholeServer) {
 			const url = `${this.base}?list=1${prefix ? `&prefix=${encodeURIComponent(prefix)}` : ""}`;
 			const res = await http({ url, method: "GET", headers: { Authorization: this.authHeader } }, t("storage.listFailed"));
-			return res.json as StoredObject[];
+			return parseKeyholeList(res.json);
 		}
 		// WebDAV: walk the collections with Depth 1 (Depth: infinity is often disabled).
 		const basePath = decodeURIComponent(new URL(this.base).pathname);

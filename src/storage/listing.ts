@@ -57,3 +57,20 @@ export function parseDavList(xml: string): DavEntry[] {
 		};
 	});
 }
+
+/** Keyhole server listing (JSON) → objects. Anything that is not a well-formed entry is dropped. */
+export function parseKeyholeList(json: unknown): StoredObject[] {
+	if (!Array.isArray(json)) return [];
+	const out: StoredObject[] = [];
+	for (const item of json as unknown[]) {
+		if (typeof item !== "object" || item === null) continue;
+		const { key, size, lastModified } = item as Record<string, unknown>;
+		if (typeof key !== "string" || !key) continue;
+		out.push({
+			key,
+			size: typeof size === "number" && Number.isFinite(size) ? size : 0,
+			lastModified: typeof lastModified === "number" && Number.isFinite(lastModified) ? lastModified : 0,
+		});
+	}
+	return out;
+}

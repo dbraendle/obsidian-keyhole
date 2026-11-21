@@ -1,7 +1,7 @@
 import { Notice, TFile, getLinkpath, type App } from "obsidian";
 import { mimeOf } from "./mime";
 import { t } from "./i18n";
-import { applyReplacements, formatBytes, isAttachment, keyholeEmbed, looksLikeAttachment, sizeOf, type Replacement } from "./migrate-rules";
+import { applyReplacements, canvasUsesFile, formatBytes, isAttachment, keyholeEmbed, looksLikeAttachment, sizeOf, type Replacement } from "./migrate-rules";
 import { messageOf } from "./render";
 import type { KeyholeSettings } from "./settings";
 import type { StoredFile, Uploader } from "./upload";
@@ -116,7 +116,7 @@ export class Migrator {
 		let kept = 0;
 		if (applied === replacements.length && settings.trashMovedAttachments) {
 			for (const { file } of moved) {
-				if (this.usedElsewhere(file, note)) {
+				if (await this.usedElsewhere(file, note)) {
 					kept++;
 					continue;
 				}
@@ -138,8 +138,15 @@ export class Migrator {
 		window.setTimeout(() => notice.hide(), failed.length || missing.size ? 15000 : 8000);
 	}
 
-	private usedElsewhere(file: TFile, note: TFile): boolean {
-		const links = this.ctx.app.metadataCache.resolvedLinks;
-		return Object.entries(links).some(([source, targets]) => source !== note.path && (targets[file.path] ?? 0) > 0);
+	private async usedElsewhere(file: TFile, note: TFile): Promise<boolean> {
+		const { metadataCache, vault } = this.ctx.app;
+		const links = metadataCache.resolvedLinks;
+		if (Object.entries(links).some(([source, targets]) => source !== note.path && (targets[file.path] ?? 0) > 0)) return true;
+		// Canvases refer to files by path in their JSON; the link index does not cover them.
+		for (const canvas of vault.getFiles()) {
+			if (canvas.extension !== "canvas") continue;
+			if (canvasUsesFile(await vault.cachedRead(canvas), file.path, file.name)) return true;
+		}
+		return false;
 	}
 }
