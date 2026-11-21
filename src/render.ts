@@ -1,5 +1,5 @@
 import { loadPdfJs, setIcon } from "obsidian";
-import { displayName as fileName, parseUrl, UPLOADING_ALIAS, type KeyholeRef } from "./link";
+import { displayName as fileName, parseUrl, typeName, UPLOADING_ALIAS, type KeyholeRef } from "./link";
 import { kindOf, type MediaKind } from "./mime";
 import type { Resolver } from "./resolver";
 import { t } from "./i18n";
@@ -109,7 +109,7 @@ export class Renderer {
 			this.showStatus(img, ref, "error", t("render.unknownStorage", { alias: ref.alias }));
 			return;
 		}
-		const kind = kindOf(ref.key);
+		const kind = kindOf(typeName(ref));
 		if (kind === "image") void this.renderImage(img, ref, src);
 		else this.renderEmbed(img, ref, kind);
 	}
@@ -181,7 +181,7 @@ export class Renderer {
 
 	/** Renders any Keyhole file into a container of its own (used by the file viewer). */
 	renderStandalone(container: HTMLElement, ref: KeyholeRef): void {
-		const kind = kindOf(ref.key);
+		const kind = kindOf(typeName(ref));
 		const el = container.createDiv({ cls: ["keyhole-embed", `keyhole-${kind}`, "keyhole-standalone"] });
 		if (kind === "image") {
 			const img = el.createEl("img", { cls: "keyhole-standalone-image", attr: { alt: fileName(ref) } });

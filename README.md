@@ -10,6 +10,7 @@ Keep your attachments on your own private storage. Drop or paste an image, PDF, 
   - PDFs, rendered in the note;
   - audio and video, streamed from S3 or the Keyhole server;
   - any other file, as a download card.
+- **End-to-end encryption (optional):** files are encrypted on your device before upload, so the storage provider sees neither content nor file names.
 - **Offline:** files you have viewed are kept on the device, up to a size limit you choose.
 - **Upload many files at once:** the *Upload files* button opens your system's picker with multi-select. On a phone that means the photo library, the camera or the Files app.
 - **Never lose a file:** if an upload fails (you are offline, say), the file is saved as a normal local attachment instead.
@@ -86,6 +87,23 @@ Notes that still have local attachments show a small bar: **Move to Keyhole** up
 
 Deleting a link does not delete the file. **Clean up storage** compares your storage with the notes of this vault and lists files no note uses anymore; you pick what to delete. Only files that Keyhole uploaded under this vault's key prefix are listed, never other files in the same bucket. Deleting is permanent unless your storage keeps versions. Files from the last 7 days are hidden by default, because notes on other devices may not have synced yet.
 
+### End-to-end encryption (optional)
+
+Without it, your files are private because the bucket is private, but the provider can read them. With it, they are encrypted on your device (AES-256-GCM) before they leave it, and the object names in the storage are random-looking ids instead of file names.
+
+1. Open **Settings → Keyhole → Encryption** and choose **End-to-end encryption**.
+2. Keyhole shows a key (`keyhole-key-v1:…`). Save it in your password manager, then paste it back from there. Encryption turns on only after that.
+3. On every other device, paste the same key into the Keyhole settings once.
+
+What you should know before you turn it on:
+
+- **There is no recovery.** If you lose the key, the encrypted files are gone. The key is kept in each device's keychain, never in your vault.
+- Encrypted audio and video cannot be streamed; they are downloaded completely before they play.
+- Files you uploaded before stay unencrypted and keep working. Only new uploads are encrypted.
+- The file name moves from the storage into the link in your note: `![photo.jpg](keyhole://main/2026/11/<id>.khe#photo.jpg)`. The part after `#` never leaves your vault.
+- Still visible to the provider: file sizes, upload times and how many files you have.
+- You can switch *Encrypt new uploads* off again at any time; encrypted files stay readable as long as the device has the key.
+
 ### Offline
 
 Files you have viewed stay on the device (size limit in the settings). **Keep attachments of the current note on this device** downloads all of a note's files ahead of a trip.
@@ -101,11 +119,12 @@ Keyhole connects **only** to the storage you configure, to upload and download y
 - **Secrets** (secret access key, token, password) are stored in Obsidian's keychain on each device. Each one is tied to the server it was saved for: if the storage address in the settings changes to another host, Keyhole asks for the secret again instead of sending it there.
 - **Settings** are stored in the plugin's `data.json` inside your vault, like for every plugin, and are synced with it if you sync plugin settings. They contain the storage address, bucket, access key ID and WebDAV user name, but no secrets.
 - Obsidian does not separate plugins from each other: other plugins you install can read the keychain and the files shown in your notes. Only install plugins you trust.
-- **The offline cache** lives in the app's local storage (IndexedDB) on each device, outside your vault and not encrypted by Keyhole. It stays there when you remove the plugin: run **Clear offline cache on this device** first.
-- **What your storage provider sees:** the files themselves and their names. The file name is part of the key (`2026/11/3f2a…-photo.jpg`), so it appears in the provider's listings and logs. Keyhole does not encrypt files; use a provider or server you trust.
+- **The offline cache** lives in the app's local storage (IndexedDB) on each device, outside your vault. It holds files as they are in your storage: end-to-end encrypted files stay encrypted there, others are not encrypted by Keyhole. It stays there when you remove the plugin: run **Clear offline cache on this device** first.
+- **What your storage provider sees:** the files themselves and their names. The file name is part of the key (`2026/11/3f2a…-photo.jpg`), so it appears in the provider's listings and logs. Unless you turn on end-to-end encryption (see above), Keyhole does not encrypt files; then use a provider or server you trust.
 - **Images** are shrunk on your device, never by a service. Re-encoding removes metadata such as the location; an image that is uploaded unchanged (GIF, SVG, already small, or shrinking switched off) keeps its metadata.
 - To stream audio and video, Keyhole gives the media player a signed link that expires after a few hours. This is a presigned URL for S3, or an HMAC-signed URL for the Keyhole server. These links exist only while the note is open and are never written to your notes.
 - **Reading your notes:** "Clean up storage" and "Restore all notes" go through every note in the vault, to find which stored files are still linked and which notes contain Keyhole links. Keyhole only looks for `keyhole://` links and never sends note contents anywhere.
+- **Encryption key:** when you press *Copy* in the encryption dialogs, the key is put on the clipboard so you can save it in your password manager.
 - **Clipboard:** when you paste, Keyhole checks whether the clipboard holds files (which it uploads) or text (which it leaves to Obsidian). It writes to the clipboard in two cases: when you choose "Copy link" on a file, and when an upload finishes after you deleted its placeholder from the note (the finished link is put on the clipboard so it is not lost).
 - **Release files** carry GitHub artifact attestations, so you can check that `main.js` and `styles.css` were built from this repository: `gh attestation verify main.js -R dbraendle/obsidian-keyhole`.
 

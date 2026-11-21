@@ -36,6 +36,11 @@ export interface KeyholeSettings {
 	editMaxHeightPercent: number;
 	fallbackToLocal: boolean;
 
+	/** Encrypt new uploads. Reading encrypted files only needs the key on the device. */
+	e2eEnabled: boolean;
+	/** Non-secret fingerprint of the vault's encryption key; empty until encryption was set up. */
+	e2eFingerprint: string;
+
 	cacheEnabled: boolean;
 	cacheMaxMB: number;
 	cacheMaxFileMB: number;
@@ -70,6 +75,9 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 	limitEditHeight: true,
 	editMaxHeightPercent: 50,
 	fallbackToLocal: true,
+
+	e2eEnabled: false,
+	e2eFingerprint: "",
 
 	cacheEnabled: true,
 	cacheMaxMB: 500,

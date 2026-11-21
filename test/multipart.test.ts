@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "../src/crypto";
 import { Sha256, sha256HexOfBlob } from "../src/sha256";
+import { blobSource } from "../src/storage/source";
 import { completeBody, multipartUpload, partSizeFor, type SendRequest, type SendResponse } from "../src/storage/multipart";
 
 const creds = { accessKeyId: "AKID", secretAccessKey: "secret", region: "auto" };
@@ -59,7 +60,7 @@ describe("multipart upload", () => {
 	it("uploads the parts in order and completes with their ETags", async () => {
 		const { requests, send } = fakeStorage();
 		const data = bytes(25);
-		await multipartUpload(send, creds, url, new Blob([data]), "video/mp4", 10);
+		await multipartUpload(send, creds, url, blobSource(new Blob([data])), "video/mp4", 10);
 
 		expect(requests.map((r) => r.method)).toEqual(["POST", "PUT", "PUT", "PUT", "POST"]);
 		expect(requests[0]?.headers["content-type"]).toBe("video/mp4");
@@ -82,7 +83,7 @@ describe("multipart upload", () => {
 
 	it("aborts the upload when a part fails", async () => {
 		const { requests, send } = fakeStorage(2);
-		await expect(multipartUpload(send, creds, url, new Blob([bytes(25)]), "video/mp4", 10)).rejects.toThrow("connection lost");
+		await expect(multipartUpload(send, creds, url, blobSource(new Blob([bytes(25)])), "video/mp4", 10)).rejects.toThrow("connection lost");
 		const last = requests.at(-1);
 		expect(last?.method).toBe("DELETE");
 		expect(new URL(last?.url ?? url).searchParams.get("uploadId")).toBe("up&1");
@@ -97,7 +98,7 @@ describe("multipart upload", () => {
 			if (request.method === "POST") return { text: "<Error><Code>InternalError</Code><Message>Try again</Message></Error>", headers: {} };
 			return { text: "", headers: {} };
 		};
-		await expect(multipartUpload(send, creds, url, new Blob([bytes(5)]), "video/mp4", 10)).rejects.toThrow("Try again");
+		await expect(multipartUpload(send, creds, url, blobSource(new Blob([bytes(5)])), "video/mp4", 10)).rejects.toThrow("Try again");
 	});
 
 	it("keeps within 10,000 parts and escapes ETags", () => {

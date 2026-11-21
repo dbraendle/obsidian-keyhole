@@ -2,6 +2,7 @@ import { sha256Hex } from "../crypto";
 import { encodeKeyPath, http, StorageError, TEST_KEY, type StorageBackend, type StoredObject } from "./backend";
 import { parseS3List } from "./listing";
 import { multipartUpload } from "./multipart";
+import type { ByteSource } from "./source";
 import { presignUrl, signHeaders, type Credentials } from "./sigv4";
 import { t } from "../i18n";
 
@@ -60,7 +61,7 @@ export class S3Backend implements StorageBackend {
 		await http({ url: url.toString(), method: "PUT", headers, body: data }, t("storage.uploadFailed"));
 	}
 
-	async putBlob(key: string, data: Blob, contentType: string): Promise<void> {
+	async putLarge(key: string, data: ByteSource, contentType: string): Promise<void> {
 		const what = t("storage.uploadFailed");
 		try {
 			await multipartUpload((request) => http(request, what), this.creds, this.objectUrl(key), data, contentType);
