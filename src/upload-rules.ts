@@ -19,9 +19,11 @@ export async function runLimited<T>(items: T[], limit: number, worker: (item: T)
 export function shouldUpload(file: { name: string; type: string; size: number }, settings: KeyholeSettings): boolean {
 	if (file.size === 0 || file.size > settings.maxUploadMB * 1024 * 1024) return false;
 	const kind = kindOf(nameFor(file));
-	if (settings.uploadScope === "images") return kind === "image";
-	if (settings.uploadScope === "media") return kind !== "file";
-	return true;
+	if (kind === "image") return settings.uploadImages;
+	if (kind === "audio") return settings.uploadAudio;
+	if (kind === "video") return settings.uploadVideo;
+	if (kind === "pdf") return settings.uploadPdf;
+	return settings.uploadOther;
 }
 
 /** Clipboard images are often called "image.png"; give them a dated name like Obsidian does. */

@@ -27,7 +27,15 @@ export interface KeyholeSettings {
 	httpUsername: string;
 	httpSecretRef: string;
 
-	uploadScope: UploadScope;
+	/** Until 0.10: one choice of all / media / images. Only read to carry an old choice over. */
+	uploadScope?: UploadScope;
+	/** Which kinds of files Keyhole takes; everything else is left to Obsidian. */
+	uploadImages: boolean;
+	uploadAudio: boolean;
+	uploadVideo: boolean;
+	uploadPdf: boolean;
+	/** Everything that is not a picture, audio, video or PDF. */
+	uploadOther: boolean;
 	maxUploadMB: number;
 	optimizeImages: boolean;
 	imageMaxEdge: number;
@@ -56,6 +64,12 @@ export interface KeyholeSettings {
 	streamLargeMedia: boolean;
 }
 
+/** The per-kind switches that match a choice made with the old single setting. */
+export function kindsForScope(scope: UploadScope): Pick<KeyholeSettings, "uploadImages" | "uploadAudio" | "uploadVideo" | "uploadPdf" | "uploadOther"> {
+	const media = scope !== "images";
+	return { uploadImages: true, uploadAudio: media, uploadVideo: media, uploadPdf: media, uploadOther: scope === "all" };
+}
+
 export const DEFAULT_SETTINGS: KeyholeSettings = {
 	storageType: "s3",
 	alias: "main",
@@ -73,7 +87,11 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 	httpUsername: "",
 	httpSecretRef: "",
 
-	uploadScope: "all",
+	uploadImages: true,
+	uploadAudio: true,
+	uploadVideo: true,
+	uploadPdf: true,
+	uploadOther: true,
 	maxUploadMB: 100,
 	optimizeImages: true,
 	imageMaxEdge: 2560,

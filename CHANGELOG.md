@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0
+
+- One switch per kind of file instead of the choice "all files / media only / images only": pictures, audio, video, PDFs and other files can be turned on and off separately, for example to upload PDFs only. An existing choice is carried over.
+
 ## 0.10.0
 
 - Set-up guide: the first time Keyhole is enabled in a vault without storage, a guide goes through storage (with a connection test), uploads, encryption, the upload button on phones and the attachments already in the vault. On a device that has the vault's settings but not its secret or encryption key, a short version asks only for those. Both open once, can be left at any point, and are available again from the settings and the command palette.

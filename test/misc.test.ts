@@ -40,12 +40,21 @@ describe("media types", () => {
 
 describe("upload rules", () => {
 	const s = { ...DEFAULT_SETTINGS, maxUploadMB: 1 };
-	it("respects scope and size", () => {
+	it("respects the switch per kind and the size", async () => {
+		const { kindsForScope } = await import("../src/settings");
 		expect(shouldUpload({ name: "a.zip", type: "", size: 10 }, s)).toBe(true);
-		expect(shouldUpload({ name: "a.zip", type: "", size: 10 }, { ...s, uploadScope: "media" })).toBe(false);
-		expect(shouldUpload({ name: "a.pdf", type: "", size: 10 }, { ...s, uploadScope: "images" })).toBe(false);
+		const onlyPdf = { ...s, uploadImages: false, uploadAudio: false, uploadVideo: false, uploadOther: false };
+		expect(shouldUpload({ name: "a.pdf", type: "", size: 10 }, onlyPdf)).toBe(true);
+		for (const name of ["a.png", "a.mp3", "a.mp4", "a.zip"]) expect(shouldUpload({ name, type: "", size: 10 }, onlyPdf)).toBe(false);
+		expect(shouldUpload({ name: "a.mp4", type: "", size: 10 }, { ...s, uploadVideo: false })).toBe(false);
 		expect(shouldUpload({ name: "a.png", type: "", size: 2 * 1024 * 1024 }, s)).toBe(false);
 		expect(shouldUpload({ name: "a.png", type: "", size: 0 }, s)).toBe(false);
+		// An old single choice maps to the same behaviour.
+		expect(shouldUpload({ name: "a.zip", type: "", size: 10 }, { ...s, ...kindsForScope("media") })).toBe(false);
+		expect(shouldUpload({ name: "a.pdf", type: "", size: 10 }, { ...s, ...kindsForScope("media") })).toBe(true);
+		expect(shouldUpload({ name: "a.pdf", type: "", size: 10 }, { ...s, ...kindsForScope("images") })).toBe(false);
+		expect(shouldUpload({ name: "a.png", type: "", size: 10 }, { ...s, ...kindsForScope("images") })).toBe(true);
+		expect(kindsForScope("all")).toEqual({ uploadImages: true, uploadAudio: true, uploadVideo: true, uploadPdf: true, uploadOther: true });
 	});
 	it("names pasted images", () => {
 		const now = new Date("2026-11-20T13:45:07Z");
