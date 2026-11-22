@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-<!-- Keyhole's icon as Obsidian shows it (black). Symbol: "cloud-upload" from Lucide (https://lucide.dev), ISC License, Copyright (c) Lucide Contributors. -->
-<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a3c"/><stop offset="1" stop-color="#111113"/></linearGradient></defs>
+<!-- Keyhole's icon (orange, as in the community directory) with a black symbol for contrast. Symbol: "cloud-upload" from Lucide (https://lucide.dev), ISC License, Copyright (c) Lucide Contributors. -->
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6a849"/><stop offset="0.5" stop-color="#d98b74"/><stop offset="1" stop-color="#a070d4"/></linearGradient></defs>
 <rect width="32" height="32" rx="7" fill="url(#bg)"/>
-<rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#fff" stroke-opacity="0"/>
-<g transform="translate(3.4 3.4) scale(1.05)" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4-4 4 4"/></g>
+<g transform="translate(3.4 3.4) scale(1.05)" fill="none" stroke="#111113" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4-4 4 4"/></g>
 </svg>
