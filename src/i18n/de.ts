@@ -192,10 +192,21 @@ export const de: Record<TextKey, string> = {
 	"settings.trashMoved.desc":
 		"Verschiebst du die lokalen Anhänge einer Notiz zu Keyhole, kommen die lokalen Dateien in den Papierkorb (wie unter „Dateien & Links“ eingestellt). Dateien, die andere Notizen noch nutzen, bleiben immer erhalten.",
 	"settings.prefix": "Ordner im Speicher",
-	"settings.prefix.desc": "Optionaler Ordner im Speicher, zum Beispiel der Vault-Name. Gilt nur für neue Uploads.",
+	"settings.prefix.desc": "Optional. Keyhole legt alle Uploads bei deinem Speicheranbieter in diesen Ordner. So bleiben sie getrennt von anderem im selben Speicher, zum Beispiel von einem zweiten Vault. Eine Änderung gilt nur für neue Uploads; bisherige Links funktionieren weiter.",
 	"settings.alias": "Speichername in Links",
-	"settings.alias.desc": "Links sehen so aus: keyhole://main/… Nur vor dem ersten Upload ändern.",
+	"settings.alias.desc":
+		"Aktuell: {alias}. Jeder Link, den Keyhole schreibt, beginnt mit diesem Wort (keyhole://{alias}/…). Es steht für den oben eingerichteten Speicher, damit in Notizen nie die Adresse des Speichers steht. Du musst es nicht ändern. Änderst du es doch, funktionieren die bisherigen Links nicht mehr.",
+	"settings.alias.change": "Ändern …",
 	"settings.alias.invalid": "Nur Kleinbuchstaben, Ziffern und Bindestriche.",
+	"settings.alias.modal.title": "Speichername in Links ändern?",
+	"settings.alias.modal.text":
+		"Deine Notizen verweisen mit keyhole://{alias}/… auf ihre Dateien. Änderst du den Namen, weiß Keyhole nicht mehr, welcher Speicher mit „{alias}“ gemeint ist: Diese Dateien zeigen in jeder Notiz einen Fehler, bis du den Namen zurückstellst. Die Dateien selbst bleiben unberührt. Neue Uploads bekommen den neuen Namen.",
+	"settings.alias.modal.counting": "Zähle die Links in diesem Vault …",
+	"settings.alias.modal.used": "In diesem Vault stehen {links} Link(s) mit „{alias}“ in {notes} Notiz(en). Sie funktionieren danach nicht mehr.",
+	"settings.alias.modal.unused": "Noch keine Notiz in diesem Vault nutzt „{alias}“, hier geht also nichts kaputt. Auf anderen Geräten oder in anderen Vaults mit denselben Einstellungen kann das anders sein.",
+	"settings.alias.modal.new": "Neuer Name",
+	"settings.alias.modal.confirm": "Trotzdem ändern",
+	"settings.alias.changed": "Keyhole: Der Speichername in Links ist jetzt „{alias}“.",
 	"settings.display": "Darstellung",
 	"settings.limitHeight": "Bildhöhe beim Bearbeiten begrenzen",
 	"settings.limitHeight.desc":

@@ -203,6 +203,24 @@ export class FileActions {
 		new CleanupModal(this.ctx.app, this, this.ctx).open();
 	}
 
+	/** How many Keyhole links in this vault use the current storage name, and in how many notes. */
+	async linksUsingAlias(): Promise<{ links: number; notes: number }> {
+		const { vault } = this.ctx.app;
+		const alias = this.ctx.settings().alias;
+		let links = 0;
+		let notes = 0;
+		for (const file of vault.getFiles()) {
+			if (file.extension !== "md" && file.extension !== "canvas") continue;
+			const text = await vault.cachedRead(file);
+			if (!text.includes("keyhole://")) continue;
+			const count = findUrls(text).filter((url) => parseUrl(url)?.alias === alias).length;
+			if (!count) continue;
+			links += count;
+			notes++;
+		}
+		return { links, notes };
+	}
+
 	/** Notes and canvases that still link to unencrypted Keyhole files, with those links. */
 	async unencryptedLinks(): Promise<{ file: TFile; urls: string[] }[]> {
 		const { vault } = this.ctx.app;

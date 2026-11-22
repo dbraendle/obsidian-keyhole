@@ -201,10 +201,21 @@ export const en = {
 	"settings.trashMoved.desc":
 		"When you move a note's local attachments to Keyhole, the local files go to the trash (as set in Obsidian's Files & links settings). Files that other notes still use are always kept.",
 	"settings.prefix": "Key prefix",
-	"settings.prefix.desc": "Optional folder in the storage, for example the vault name. Changing it only affects new uploads.",
+	"settings.prefix.desc": "Optional. Keyhole puts all uploads into this folder at your storage provider, which keeps them apart from other things in the same storage, for example another vault. Changing it only affects new uploads; existing links keep working.",
 	"settings.alias": "Storage name in links",
-	"settings.alias.desc": "Links look like keyhole://main/… Only change this before your first upload.",
+	"settings.alias.desc":
+		"Currently: {alias}. Every link Keyhole writes starts with this word (keyhole://{alias}/…). It stands for the storage configured above, so that notes never contain the storage address. You do not need to change it. If you do, the existing links stop working.",
+	"settings.alias.change": "Change …",
 	"settings.alias.invalid": "Lowercase letters, digits and dashes only.",
+	"settings.alias.modal.title": "Change the storage name in links?",
+	"settings.alias.modal.text":
+		"Your notes point to their files with keyhole://{alias}/… If you change the name, Keyhole no longer knows which storage “{alias}” means: those files show an error in every note until you set the name back. The files themselves are not touched. New uploads use the new name.",
+	"settings.alias.modal.counting": "Counting the links in this vault …",
+	"settings.alias.modal.used": "This vault has {links} link(s) with “{alias}” in {notes} note(s). They will stop working.",
+	"settings.alias.modal.unused": "No note in this vault uses “{alias}” yet, so nothing breaks here. Other devices or vaults with the same settings may differ.",
+	"settings.alias.modal.new": "New name",
+	"settings.alias.modal.confirm": "Change anyway",
+	"settings.alias.changed": "Keyhole: Storage name in links is now “{alias}”.",
 	"settings.display": "Display",
 	"settings.limitHeight": "Limit image height while editing",
 	"settings.limitHeight.desc":
