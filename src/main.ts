@@ -1,5 +1,6 @@
 import { MarkdownView, Modal, Notice, Platform, Plugin, Setting, TFile, type App } from "obsidian";
-import { isPlacedAfterAttach, placeAfterAttach } from "./toolbar";
+import { OverviewModal } from "./overview";
+import { isPlacedAfterAttach, placeAfterAttach, UPLOAD_COMMAND_ID } from "./toolbar";
 import { FileCache } from "./cache";
 import { parseUrl, type KeyholeRef } from "./link";
 import { Renderer, messageOf } from "./render";
@@ -28,6 +29,8 @@ export default class KeyholePlugin extends Plugin {
 	private renderer!: Renderer;
 	private lastErrorNotice = 0;
 	files!: FileActions;
+	/** Opens the overview of local and uploaded files. */
+	openOverview: () => void = () => undefined;
 	private hint: LocalAttachmentHint | null = null;
 
 	async onload(): Promise<void> {
@@ -70,6 +73,15 @@ export default class KeyholePlugin extends Plugin {
 			uploader,
 			canEncrypt: () => this.settings.e2eEnabled && this.keyMatches,
 		});
+		this.openOverview = () =>
+			new OverviewModal({
+				app: this.app,
+				settings: () => this.settings,
+				backend: () => this.getBackend(),
+				migrator,
+				files: this.files,
+			}).open();
+		this.addCommand({ id: "overview", name: t("command.overview"), icon: "list", callback: () => this.openOverview() });
 		const hint = new LocalAttachmentHint(this.app, migrator, () => this.settings);
 		this.hint = hint;
 		this.registerEvent(this.app.workspace.on("file-open", () => hint.update()));
@@ -272,6 +284,8 @@ export default class KeyholePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data = ((await this.loadData()) ?? {}) as Partial<KeyholeSettings>;
 		this.settings = { ...DEFAULT_SETTINGS, ...data };
+		// Before the metadata choice existed, pictures kept their metadata exactly when shrinking was off.
+		if (data.imageMetadata === undefined && data.optimizeImages === false) this.settings.imageMetadata = "keep";
 	}
 
 	/** Called by the settings tab after every change. */
@@ -493,15 +507,22 @@ export default class KeyholePlugin extends Plugin {
 		return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 	}
 
-	/** Puts the upload button right after the paper clip in the mobile toolbar. */
-	addToMobileToolbar(): void {
+	/** Is the upload button in the mobile toolbar? Null if this Obsidian version does not let plugins look. */
+	mobileToolbarState(): boolean | null {
+		const config = this.coreConfig();
+		return config ? this.toolbarCommands(config).includes(UPLOAD_COMMAND_ID) : null;
+	}
+
+	/** Puts the upload button right after the paper clip in the mobile toolbar, or takes it out again. */
+	setMobileToolbar(on: boolean): void {
 		const config = this.coreConfig();
 		if (!config) {
 			new Notice(t("notice.toolbarUnavailable"));
 			return;
 		}
-		config.set("mobileToolbarCommands", placeAfterAttach(this.toolbarCommands(config)));
-		new Notice(t("notice.toolbarAdded"));
+		const commands = this.toolbarCommands(config);
+		config.set("mobileToolbarCommands", on ? placeAfterAttach(commands) : commands.filter((c) => c !== UPLOAD_COMMAND_ID));
+		new Notice(t(on ? "notice.toolbarAdded" : "notice.toolbarRemoved"));
 	}
 
 	/** Asks once (per vault, synced) whether to place the upload button in the mobile toolbar. */
@@ -513,7 +534,7 @@ export default class KeyholePlugin extends Plugin {
 			t("toolbar.title"),
 			t("toolbar.text"),
 			t("toolbar.add"),
-			() => this.addToMobileToolbar(),
+			() => this.setMobileToolbar(true),
 		).open();
 		this.settings.toolbarPrompted = true;
 		void this.saveData(this.settings);

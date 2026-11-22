@@ -1,4 +1,4 @@
-import { Notice, TFile, getLinkpath, type App } from "obsidian";
+import { Notice, TFile, getLinkpath, type App, type EmbedCache } from "obsidian";
 import { mimeOf } from "./mime";
 import { t } from "./i18n";
 import { applyReplacements, canvasUsesFile, formatBytes, isAttachment, keyholeEmbed, looksLikeAttachment, sizeOf, type Replacement } from "./migrate-rules";
@@ -138,10 +138,65 @@ export class Migrator {
 		window.setTimeout(() => notice.hide(), failed.length || missing.size ? 15000 : 8000);
 	}
 
+	/**
+	 * Moves one local attachment: uploads it once and rewrites its embeds in every
+	 * note that shows it. The local file only goes to the trash if nothing links to it
+	 * afterwards (a plain link or a canvas keeps it).
+	 */
+	async moveFile(file: TFile): Promise<{ stored: StoredFile; notes: number; trashed: boolean }> {
+		const { app } = this.ctx;
+		const { metadataCache } = app;
+		const pointsHere = (link: string, note: TFile) => metadataCache.getFirstLinkpathDest(getLinkpath(link), note.path) === file;
+		const uses: { note: TFile; embeds: EmbedCache[] }[] = [];
+		let linkedOtherwise = false;
+		for (const [source, targets] of Object.entries(metadataCache.resolvedLinks)) {
+			if (!((targets[file.path] ?? 0) > 0)) continue;
+			const note = app.vault.getAbstractFileByPath(source);
+			if (!(note instanceof TFile)) continue;
+			const cache = metadataCache.getFileCache(note);
+			const embeds = (cache?.embeds ?? []).filter((e) => pointsHere(e.link, note));
+			const links = [...(cache?.links ?? []), ...(cache?.frontmatterLinks ?? [])];
+			if (links.some((l) => pointsHere(l.link, note))) linkedOtherwise = true;
+			if (embeds.length) uses.push({ note, embeds });
+		}
+		if (!uses.length) throw new Error(t("overview.notEmbedded"));
+
+		const data = await app.vault.readBinary(file);
+		const stored = await this.ctx.uploader.store(new File([data], file.name, { type: mimeOf(file.name) }), file.name);
+		let complete = true;
+		for (const { note, embeds } of uses) {
+			const replacements: Replacement[] = embeds.map((embed) => ({
+				start: embed.position.start.offset,
+				end: embed.position.end.offset,
+				original: embed.original,
+				replacement: keyholeEmbed(stored.name, sizeOf(embed.original), stored.ref),
+			}));
+			let applied = 0;
+			await app.vault.process(note, (text) => {
+				const result = applyReplacements(text, replacements);
+				applied = result.applied;
+				return result.text;
+			});
+			if (applied < replacements.length) complete = false;
+		}
+
+		let trashed = false;
+		if (complete && !linkedOtherwise && this.ctx.settings().trashMovedAttachments && !(await this.usedInCanvas(file))) {
+			await app.fileManager.trashFile(file);
+			trashed = true;
+		}
+		return { stored, notes: uses.length, trashed };
+	}
+
 	private async usedElsewhere(file: TFile, note: TFile): Promise<boolean> {
-		const { metadataCache, vault } = this.ctx.app;
+		const { metadataCache } = this.ctx.app;
 		const links = metadataCache.resolvedLinks;
 		if (Object.entries(links).some(([source, targets]) => source !== note.path && (targets[file.path] ?? 0) > 0)) return true;
+		return this.usedInCanvas(file);
+	}
+
+	private async usedInCanvas(file: TFile): Promise<boolean> {
+		const { vault } = this.ctx.app;
 		// Canvases refer to files by path in their JSON; the link index does not cover them.
 		for (const canvas of vault.getFiles()) {
 			if (canvas.extension !== "canvas") continue;

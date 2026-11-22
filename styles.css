@@ -310,3 +310,61 @@ body.keyhole-modal-open .workspace .keyhole-pdf-pages {
 .keyhole-warning {
 	color: var(--text-error);
 }
+
+.keyhole-overview-modal {
+	width: min(760px, 96vw);
+}
+
+.keyhole-overview-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-3);
+}
+
+.keyhole-overview-search {
+	width: 100%;
+	margin-bottom: var(--size-4-2);
+}
+
+.keyhole-overview-list {
+	max-height: 55vh;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.keyhole-overview-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-3);
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.keyhole-overview-row:last-child {
+	border-bottom: none;
+}
+
+.keyhole-overview-info {
+	flex: 1;
+	min-width: 0;
+}
+
+.keyhole-overview-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.keyhole-overview-meta {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	overflow-wrap: anywhere;
+}
+
+.keyhole-overview-actions {
+	display: flex;
+	flex-shrink: 0;
+	gap: var(--size-4-2);
+}

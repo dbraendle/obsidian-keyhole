@@ -1,15 +1,26 @@
 /**
- * Shrinks images on the device before upload, using the canvas every WebView has.
- * Phone screenshots are 16-bit PNGs of 8–10 MB; after this they are a few hundred KB.
- * Re-encoding also drops metadata such as GPS coordinates.
+ * Prepares images on the device before upload: shrinks them with the canvas every
+ * WebView has (phone screenshots are 16-bit PNGs of 8–10 MB; afterwards they are a
+ * few hundred KB) and applies the user's choice about metadata. The two are
+ * independent: a picture can keep its size and lose its location, or the other way round.
  */
 import { extensionOf } from "./link";
+import { buildExif, insertExif, readExif, removeLocation, stripMetadata, type MetadataMode } from "./metadata";
 
 export interface OptimizeOptions {
 	/** Longest edge in pixels. */
 	maxEdge: number;
 	/** 0.5–1 */
 	quality: number;
+	/** JPEG instead of WebP: the only format we can put the picture's metadata back into. */
+	preferJpeg?: boolean;
+}
+
+export interface PrepareOptions {
+	resize: boolean;
+	maxEdge: number;
+	quality: number;
+	metadata: MetadataMode;
 }
 
 /** Formats we re-encode. GIF (animation) and SVG (vector) are left alone. */
@@ -67,7 +78,7 @@ export async function optimizeImage(file: File, name: string, opts: OptimizeOpti
 		const alpha = mayHaveAlpha && hasTransparency(ctx, size.width, size.height);
 
 		// WebP where the platform can encode it (not Safari/iOS), otherwise JPEG – or PNG to keep transparency.
-		let blob = await toBlob(canvas, "image/webp", opts.quality);
+		let blob = opts.preferJpeg && !alpha ? null : await toBlob(canvas, "image/webp", opts.quality);
 		if (!blob || blob.type !== "image/webp") {
 			blob = alpha ? await toBlob(canvas, "image/png", 1) : await toBlob(canvas, "image/jpeg", opts.quality);
 		}
@@ -81,4 +92,31 @@ export async function optimizeImage(file: File, name: string, opts: OptimizeOpti
 	} finally {
 		bitmap.close();
 	}
+}
+
+/**
+ * The file to upload instead of the original, or null to upload the original as it is.
+ * Re-encoding drops all metadata, so what the user wants to keep is put back; an
+ * original that goes up unchanged in size still gets its metadata treated.
+ */
+export async function prepareImage(file: File, name: string, opts: PrepareOptions): Promise<File | null> {
+	if (!canOptimize(name)) return null;
+	if (!opts.resize && opts.metadata === "keep") return null;
+	const original = new Uint8Array(await file.arrayBuffer());
+	const exif = opts.metadata === "strip" ? null : readExif(original);
+
+	if (opts.resize) {
+		const smaller = await optimizeImage(file, name, { maxEdge: opts.maxEdge, quality: opts.quality, preferJpeg: exif !== null });
+		if (smaller) {
+			const block = exif && smaller.type === "image/jpeg" ? buildExif(exif, opts.metadata === "keep") : null;
+			if (!block) return smaller;
+			const withExif = insertExif(new Uint8Array(await smaller.arrayBuffer()), block);
+			return new File([withExif as Uint8Array<ArrayBuffer>], smaller.name, { type: smaller.type, lastModified: smaller.lastModified });
+		}
+	}
+
+	if (opts.metadata === "keep") return null;
+	const cleaned = opts.metadata === "strip" ? stripMetadata(original) : removeLocation(original);
+	if (cleaned === original) return null;
+	return new File([cleaned as Uint8Array<ArrayBuffer>], name, { type: file.type, lastModified: file.lastModified });
 }

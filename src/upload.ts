@@ -11,7 +11,7 @@ import type { Resolver } from "./resolver";
 import type { KeyholeSettings } from "./settings";
 import type { StorageBackend } from "./storage/backend";
 import { messageOf } from "./render";
-import { optimizeImage } from "./image";
+import { prepareImage } from "./image";
 import { t } from "./i18n";
 
 export interface UploadContext {
@@ -121,7 +121,7 @@ export class Uploader {
 	}
 
 	/**
-	 * Shrinks the file if it is an image (and the setting is on), uploads it under its
+	 * Prepares the file if it is an image (size and metadata, as set), uploads it under its
 	 * content-addressed key and keeps a copy in the cache. Used by paste/drop/picker
 	 * and by the migration of local attachments.
 	 */
@@ -129,8 +129,8 @@ export class Uploader {
 		const settings = this.ctx.settings();
 		let file = original;
 		let name = originalName;
-		// Files that are in the storage already were shrunk when they went up: never re-encode them.
-		if (optimize && settings.optimizeImages) {
+		// Files that are in the storage already were prepared when they went up: never touch them again.
+		if (optimize) {
 			const smaller = await this.optimize(original, originalName);
 			if (smaller) {
 				file = smaller;
@@ -180,9 +180,12 @@ export class Uploader {
 	private optimize(file: File, name: string): Promise<File | null> {
 		const settings = this.ctx.settings();
 		const run = this.optimizing.then(() =>
-			optimizeImage(file, name, { maxEdge: settings.imageMaxEdge, quality: settings.imageQuality / 100 }).catch(
-				() => null,
-			),
+			prepareImage(file, name, {
+				resize: settings.optimizeImages,
+				maxEdge: settings.imageMaxEdge,
+				quality: settings.imageQuality / 100,
+				metadata: settings.imageMetadata,
+			}).catch(() => null),
 		);
 		this.optimizing = run;
 		return run;

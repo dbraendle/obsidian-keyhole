@@ -140,11 +140,21 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						control: { type: "number", key: "imageQuality", min: 50, max: 100 },
 					},
 					{
-						name: t("settings.toolbar"),
-						desc: t("settings.toolbar.desc"),
-						action: () => {
-							this.plugin.addToMobileToolbar();
+						name: t("settings.metadata"),
+						desc: t("settings.metadata.desc"),
+						control: {
+							type: "dropdown",
+							key: "imageMetadata",
+							options: {
+								keep: t("settings.metadata.keep"),
+								"no-location": t("settings.metadata.noLocation"),
+								strip: t("settings.metadata.strip"),
+							},
 						},
+					},
+					{
+						name: t("settings.toolbar"),
+						render: (setting) => this.renderToolbar(setting),
 					},
 					{
 						name: t("settings.maxUpload"),
@@ -278,6 +288,11 @@ export class KeyholeSettingTab extends PluginSettingTab {
 						control: { type: "toggle", key: "streamLargeMedia" },
 					},
 					{
+						name: t("settings.overview"),
+						desc: t("settings.overview.desc"),
+						action: () => this.plugin.openOverview(),
+					},
+					{
 						name: t("settings.cleanup"),
 						desc: t("settings.cleanup.desc"),
 						action: () => this.plugin.files.cleanup(),
@@ -303,6 +318,14 @@ export class KeyholeSettingTab extends PluginSettingTab {
 	 * have to invent a keychain id or go through the generic keychain dialog.
 	 * Only the id is stored in data.json.
 	 */
+	/** The mobile toolbar is a core setting: the switch shows what is in it right now. */
+	private renderToolbar(setting: Setting): void {
+		const state = this.plugin.mobileToolbarState();
+		setting.setDesc(t(state === null ? "settings.toolbar.unavailable" : "settings.toolbar.desc"));
+		if (state === null) return;
+		setting.addToggle((toggle) => toggle.setValue(state).onChange((on) => this.plugin.setMobileToolbar(on)));
+	}
+
 	/** The storage name is part of every link: show it, and change it only through a warning. */
 	private renderAlias(setting: Setting): void {
 		const describe = () => setting.setDesc(t("settings.alias.desc", { alias: this.plugin.settings.alias }));

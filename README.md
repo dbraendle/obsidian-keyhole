@@ -68,7 +68,7 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 ## Using it
 
 - **Drop or paste** files into a note. Keyhole takes files that match *Upload these files* and are under the size limit; everything else is left to Obsidian. Images are shrunk on the device first (configurable).
-- **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On phones Keyhole offers to put this button next to the paper clip in the toolbar.
+- **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On phones Keyhole offers to put this button next to the paper clip in the toolbar; a switch in the settings shows whether it is there and takes it out again.
 - **Right-click a Keyhole file** (long-press on mobile) to open it, copy its link, download or share it, bring it back into the vault, or delete it from your storage.
 - **Links work too:** `[Booking](keyhole://…)` without the `!` is a plain link; tapping it opens the file.
 - Links look like `![photo.jpg](keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg)`. Resize images as usual: `![photo.jpg|300](…)`.
@@ -80,6 +80,8 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 Notes that still have local attachments show a small bar: **Move to Keyhole** uploads them (images shrunk), rewrites the embeds (sizes like `|300` are kept) and moves the local files to the trash. Files that other notes or canvases still use are kept. Shrinking is lossy: if you want to keep originals in full quality, switch off *Shrink images before upload* or *Remove local copies after moving* first. The same is available as a command and in the note's ⋯ menu.
 
 ### Your way out
+
+**File overview** (settings or command palette) shows in one window which attachments are stored in the vault and which are in your storage, with sizes. Each file can be uploaded or brought back on its own.
 
 **Bring all Keyhole files back into the vault** (settings or command palette) turns every Keyhole file into a normal attachment again. Your storage keeps its copies. You are never locked in.
 
@@ -121,9 +123,9 @@ Keyhole connects **only** to the storage you configure, to upload and download y
 - Obsidian does not separate plugins from each other: other plugins you install can read the keychain and the files shown in your notes. Only install plugins you trust.
 - **The offline cache** lives in the app's local storage (IndexedDB) on each device, outside your vault. It holds files as they are in your storage: end-to-end encrypted files stay encrypted there, others are not encrypted by Keyhole. It stays there when you remove the plugin: run **Clear offline cache on this device** first.
 - **What your storage provider sees:** the files themselves and their names. The file name is part of the key (`2026/11/3f2a…-photo.jpg`), so it appears in the provider's listings and logs. Unless you turn on end-to-end encryption (see above), Keyhole does not encrypt files; then use a provider or server you trust.
-- **Images** are shrunk on your device, never by a service. Re-encoding removes metadata such as the location; an image that is uploaded unchanged (GIF, SVG, already small, or shrinking switched off) keeps its metadata.
+- **Images** are shrunk on your device, never by a service. **Metadata in pictures** is a setting of its own, independent of shrinking: keep everything, remove the location, or remove everything (the default). JPEG and PNG are cleaned without re-encoding the picture; when everything is removed, the orientation and the colour profile stay, because the picture needs them. Limits: formats such as HEIC, AVIF, WebP and TIFF only lose the location unless they are shrunk; a PNG with a location loses its whole EXIF block, not only the location; GIF and SVG are never touched; a shrunk picture that keeps metadata is saved as JPEG and carries the EXIF data over, but not XMP or IPTC.
 - To stream audio and video, Keyhole gives the media player a signed link that expires after a few hours. This is a presigned URL for S3, or an HMAC-signed URL for the Keyhole server. These links exist only while the note is open and are never written to your notes.
-- **Reading your notes:** "Clean up storage" and "Restore all notes" go through every note in the vault, to find which stored files are still linked and which notes contain Keyhole links. Keyhole only looks for `keyhole://` links and never sends note contents anywhere.
+- **Reading your notes:** "Clean up storage", "Restore all notes" and the file overview go through every note in the vault, to find which stored files are still linked and which notes contain Keyhole links. Keyhole only looks for `keyhole://` links and never sends note contents anywhere.
 - **Encryption key:** when you press *Copy* in the encryption dialogs, the key is put on the clipboard so you can save it in your password manager.
 - **Clipboard:** when you paste, Keyhole checks whether the clipboard holds files (which it uploads) or text (which it leaves to Obsidian). It writes to the clipboard in two cases: when you choose "Copy link" on a file, and when an upload finishes after you deleted its placeholder from the note (the finished link is put on the clipboard so it is not lost).
 - **Release files** carry GitHub artifact attestations, so you can check that `main.js` and `styles.css` were built from this repository: `gh attestation verify main.js -R dbraendle/obsidian-keyhole`.
