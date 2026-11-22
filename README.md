@@ -68,7 +68,7 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 ## Using it
 
 - **Drop or paste** files into a note. Keyhole takes files that match *Upload these files* and are under the size limit; everything else is left to Obsidian. Images are shrunk on the device first (configurable).
-- **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On phones Keyhole offers to put this button next to the paper clip in the toolbar; a switch in the settings shows whether it is there and takes it out again.
+- **Upload files** (ribbon icon, command palette or the editor's context menu) picks several files at once. On phones Keyhole asks once where this button should go in the toolbar above the keyboard: next to the paper clip, or instead of it, so that the one button left uploads. The setting can be changed later, and Keyhole puts the paper clip back when it is switched off or uninstalled.
 - **Right-click a Keyhole file** (long-press on mobile) to open it, copy its link, download or share it, bring it back into the vault, or delete it from your storage.
 - **Links work too:** `[Booking](keyhole://…)` without the `!` is a plain link; tapping it opens the file.
 - Links look like `![photo.jpg](keyhole://main/2026/11/3f2a9c1e0b7d4a55-photo.jpg)`. Resize images as usual: `![photo.jpg|300](…)`.

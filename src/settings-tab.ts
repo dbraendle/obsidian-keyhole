@@ -2,6 +2,7 @@ import { Modal, Notice, PluginSettingTab, Setting, type App, type SettingDefinit
 import { exportVaultKey, generateVaultKey, importVaultKey } from "./e2e/format";
 import { t } from "./i18n";
 import type KeyholePlugin from "./main";
+import type { ToolbarMode } from "./toolbar";
 import { bindingId, checkBinding, HTTP_SECRET_ID, S3_SECRET_ID } from "./secrets";
 
 export class KeyholeSettingTab extends PluginSettingTab {
@@ -318,12 +319,17 @@ export class KeyholeSettingTab extends PluginSettingTab {
 	 * have to invent a keychain id or go through the generic keychain dialog.
 	 * Only the id is stored in data.json.
 	 */
-	/** The mobile toolbar is a core setting: the switch shows what is in it right now. */
+	/** The mobile toolbar is a core setting: the choice shows what is in it right now. */
 	private renderToolbar(setting: Setting): void {
-		const state = this.plugin.mobileToolbarState();
-		setting.setDesc(t(state === null ? "settings.toolbar.unavailable" : "settings.toolbar.desc"));
-		if (state === null) return;
-		setting.addToggle((toggle) => toggle.setValue(state).onChange((on) => this.plugin.setMobileToolbar(on)));
+		const mode = this.plugin.mobileToolbarMode();
+		setting.setDesc(t(mode === null ? "settings.toolbar.unavailable" : "settings.toolbar.desc"));
+		if (mode === null) return;
+		setting.addDropdown((dropdown) =>
+			dropdown
+				.addOptions({ off: t("settings.toolbar.off"), beside: t("settings.toolbar.beside"), replace: t("settings.toolbar.replace") })
+				.setValue(mode)
+				.onChange((value) => void this.plugin.setMobileToolbar(value as ToolbarMode)),
+		);
 	}
 
 	/** The storage name is part of every link: show it, and change it only through a warning. */

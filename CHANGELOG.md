@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.0
+
+- The upload button in the mobile toolbar can take the place of the paper clip, so that the one button left uploads instead of saving into the vault. The setting has three choices now: not in the toolbar, next to the paper clip, instead of the paper clip. Keyhole puts the paper clip back when it is switched off or uninstalled.
+- The question Keyhole asks once on a phone or tablet offers both placements.
+
 ## 0.8.0
 
 - File overview (Settings → Keyhole, or the command palette): one window that lists the attachments stored in the vault and the files in your storage, with sizes. Each file can be uploaded or brought back on its own.
