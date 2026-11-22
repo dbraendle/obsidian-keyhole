@@ -15,7 +15,7 @@ Keep your attachments on your own private storage. Drop or paste an image, PDF, 
 - **Upload many files at once:** the *Upload files* button opens your system's picker with multi-select. On a phone that means the photo library, the camera or the Files app.
 - **Never lose a file:** if an upload fails (you are offline, say), the file is saved as a normal local attachment instead.
 
-![A note whose photo, PDF and voice memo live in private storage](docs/images/02-note.png)
+![A note whose photo, PDF and voice memo live in private storage](docs/images/desktop-1-note.png)
 
 > Status: beta. Tested on macOS and iPhone; Android still needs testing. Design notes: [docs/CONCEPT.md](docs/CONCEPT.md).
 
@@ -41,7 +41,7 @@ Manual install: download `main.js`, `manifest.json` and `styles.css` from the [l
 
 ## Setup
 
-![Keyhole settings](docs/images/03-settings.png)
+![Keyhole settings](docs/images/desktop-6-settings-storage.png)
 
 1. Enable Keyhole under *Settings → Community plugins*.
 2. Open **Settings → Keyhole** and choose your storage.
@@ -82,6 +82,8 @@ Notes that still have local attachments show a small bar: **Move to Keyhole** up
 ### Your way out
 
 **File overview** (settings or command palette) shows in one window which attachments are stored in the vault and which are in your storage, with sizes. Each file can be uploaded or brought back on its own.
+
+![File overview: attachments in the vault, each with an upload button](docs/images/desktop-2-overview-vault.png)
 
 **Bring all Keyhole files back into the vault** (settings or command palette) turns every Keyhole file into a normal attachment again. Your storage keeps its copies. You are never locked in.
 
