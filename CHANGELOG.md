@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2
+
+- Pasting: whether the clipboard holds real text next to a picture is now decided by parsing the clipboard's HTML instead of stripping tags with patterns (a code-scanning finding). The result was only ever used as a yes/no; nothing from the clipboard was inserted as HTML.
+
 ## 0.11.1
 
 - Adds a funding link (GitHub Sponsors) to the plugin's entry in Obsidian. No functional change.

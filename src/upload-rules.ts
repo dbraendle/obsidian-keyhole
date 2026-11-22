@@ -40,11 +40,9 @@ export function nameFor(file: { name: string; type: string }, now: Date = new Da
  */
 export function clipboardIsRichText(data: DataTransfer): boolean {
 	if (!data.types.includes("text/html")) return false;
-	const html = data.getData("text/html");
-	const text = html
-		.replace(/<img\b[^>]*>/gi, "")
-		.replace(/<[^>]+>/g, "")
-		.replace(/&nbsp;/g, " ")
-		.trim();
-	return text.length > 0;
+	// Parsed, not picked apart with patterns: the parser's document is inert (no scripts
+	// run, nothing loads), and only its text is looked at.
+	const doc = new DOMParser().parseFromString(data.getData("text/html"), "text/html");
+	doc.querySelectorAll("script, style, img").forEach((el) => el.remove());
+	return (doc.body.textContent ?? "").replace(/\u00a0/g, " ").trim().length > 0;
 }
