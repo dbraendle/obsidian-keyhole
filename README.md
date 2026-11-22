@@ -31,7 +31,7 @@ On phones and tablets:
   <img src="docs/listing/mobile-3-move.png" alt="Photos already in the vault? One tap moves them to your storage" width="32%">
 </p>
 
-> Status: beta. Tested on macOS and iPhone. What was added since 0.5 (encryption, large uploads, the file overview, the set-up guide) has not been tested on a phone yet, and Android still needs testing. Design notes: [docs/CONCEPT.md](docs/CONCEPT.md).
+> Keyhole is in beta. It is tested on macOS and iPhone. The newer features (end-to-end encryption, large uploads, the file overview and the set-up guide) have not been tried on a phone yet, and Android has not been tested at all. Design notes: [docs/CONCEPT.md](docs/CONCEPT.md).
 
 ## Storage you can use
 
