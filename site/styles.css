@@ -488,7 +488,8 @@ tbody th { white-space: nowrap; }
 /* Limits */
 
 .status {
-	border: 2px solid var(--orange);
+	border: 1px solid var(--border);
+	border-left: 4px solid var(--orange);
 	border-radius: var(--radius);
 	padding: 1.2rem 1.4rem;
 	margin: 2rem 0;
