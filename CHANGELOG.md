@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.3
+
+- Adds Ko-fi as a second funding link. No functional change.
+
 ## 0.11.2
 
 - Pasting: whether the clipboard holds real text next to a picture is now decided by a small scanner that only looks at the text between tags, instead of stripping tags with patterns (a code-scanning finding). The result was only ever used as a yes/no; nothing from the clipboard was inserted as HTML.
