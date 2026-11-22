@@ -6,7 +6,7 @@ import { FileCache } from "./cache";
 import { parseUrl, type KeyholeRef } from "./link";
 import { Renderer, messageOf } from "./render";
 import { Resolver } from "./resolver";
-import { DEFAULT_SETTINGS, type KeyholeSettings } from "./settings";
+import { DEFAULT_SETTINGS, kindsForScope, type KeyholeSettings } from "./settings";
 import { KeyholeSettingTab } from "./settings-tab";
 import { StorageError, type StorageBackend } from "./storage/backend";
 import { S3Backend } from "./storage/s3";
@@ -294,6 +294,8 @@ export default class KeyholePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data = ((await this.loadData()) ?? {}) as Partial<KeyholeSettings>;
 		this.settings = { ...DEFAULT_SETTINGS, ...data };
+		// Until 0.10 there was one choice of all / media / images instead of a switch per kind.
+		if (data.uploadImages === undefined && data.uploadScope) Object.assign(this.settings, kindsForScope(data.uploadScope));
 		// Before the metadata choice existed, pictures kept their metadata exactly when shrinking was off.
 		if (data.imageMetadata === undefined && data.optimizeImages === false) this.settings.imageMetadata = "keep";
 	}

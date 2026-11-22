@@ -118,17 +118,26 @@ export class KeyholeSettingTab extends PluginSettingTab {
 				heading: t("settings.uploads"),
 				items: [
 					{
-						name: t("settings.scope"),
-						desc: t("settings.scope.desc"),
-						control: {
-							type: "dropdown",
-							key: "uploadScope",
-							options: {
-								all: t("settings.scope.all"),
-								media: t("settings.scope.media"),
-								images: t("settings.scope.images"),
-							},
-						},
+						name: t("settings.kind.images"),
+						desc: t("settings.kind.images.desc"),
+						control: { type: "toggle", key: "uploadImages" },
+					},
+					{
+						name: t("settings.kind.audio"),
+						control: { type: "toggle", key: "uploadAudio" },
+					},
+					{
+						name: t("settings.kind.video"),
+						control: { type: "toggle", key: "uploadVideo" },
+					},
+					{
+						name: t("settings.kind.pdf"),
+						control: { type: "toggle", key: "uploadPdf" },
+					},
+					{
+						name: t("settings.kind.other"),
+						desc: t("settings.kind.other.desc"),
+						control: { type: "toggle", key: "uploadOther" },
 					},
 					{
 						name: t("settings.optimize"),

@@ -8,7 +8,7 @@ import { movableSummary, runMoveAll } from "./move-all";
 import { messageOf } from "./render";
 import { HTTP_SECRET_ID, S3_SECRET_ID } from "./secrets";
 import { EncryptionSetupModal } from "./settings-tab";
-import type { StorageType, UploadScope } from "./settings";
+import type { StorageType } from "./settings";
 import type { ToolbarMode } from "./toolbar";
 
 /** "full": nothing is set up yet. "device": the vault is set up, this device lacks its secret or key. */
@@ -248,18 +248,23 @@ export class SetupModal extends Modal {
 	private renderUploads(): void {
 		const { settings } = this.plugin;
 		const save = () => void this.plugin.saveSettings();
-		new Setting(this.contentEl)
-			.setName(t("settings.scope"))
-			.setDesc(t("settings.scope.desc"))
-			.addDropdown((d) =>
-				d
-					.addOptions({ all: t("settings.scope.all"), media: t("settings.scope.media"), images: t("settings.scope.images") })
-					.setValue(settings.uploadScope)
-					.onChange((v) => {
-						settings.uploadScope = v as UploadScope;
-						save();
-					}),
+		const kinds = [
+			["uploadImages", "settings.kind.images"],
+			["uploadAudio", "settings.kind.audio"],
+			["uploadVideo", "settings.kind.video"],
+			["uploadPdf", "settings.kind.pdf"],
+			["uploadOther", "settings.kind.other"],
+		] as const;
+		for (const [key, name] of kinds) {
+			const setting = new Setting(this.contentEl).setName(t(name));
+			if (key === "uploadOther") setting.setDesc(t("settings.kind.other.desc"));
+			setting.addToggle((toggle) =>
+				toggle.setValue(settings[key]).onChange((v) => {
+					settings[key] = v;
+					save();
+				}),
 			);
+		}
 		new Setting(this.contentEl)
 			.setName(t("settings.optimize"))
 			.setDesc(t("setup.uploads.shrink"))
