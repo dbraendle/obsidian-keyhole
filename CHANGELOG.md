@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- "Storage name in links" can no longer be changed by typing into a field. The setting shows the current name and explains what it is; changing it goes through a dialog that counts the links in the vault that would stop working.
+- Clearer description for "Folder in storage".
+
 ## 0.7.0
 
 - "Encrypt existing files" (Settings → Keyhole → Encryption, or the command palette): files uploaded before encryption was turned on are uploaded again encrypted, and the links in notes and canvases are rewritten. The old unencrypted copies stay in the storage until you remove them with "Clean up storage".

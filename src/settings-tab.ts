@@ -173,13 +173,7 @@ export class KeyholeSettingTab extends PluginSettingTab {
 					},
 					{
 						name: t("settings.alias"),
-						desc: t("settings.alias.desc"),
-						control: {
-							type: "text",
-							key: "alias",
-							validate: (v) =>
-								/^[a-z0-9][a-z0-9-]{0,31}$/.test(v) ? undefined : t("settings.alias.invalid"),
-						},
+						render: (setting) => this.renderAlias(setting),
 					},
 				],
 			},
@@ -309,6 +303,20 @@ export class KeyholeSettingTab extends PluginSettingTab {
 	 * have to invent a keychain id or go through the generic keychain dialog.
 	 * Only the id is stored in data.json.
 	 */
+	/** The storage name is part of every link: show it, and change it only through a warning. */
+	private renderAlias(setting: Setting): void {
+		const describe = () => setting.setDesc(t("settings.alias.desc", { alias: this.plugin.settings.alias }));
+		describe();
+		setting.addButton((button) =>
+			button.setButtonText(t("settings.alias.change")).onClick(() => {
+				new StorageNameModal(this.app, this.plugin, async (alias) => {
+					await this.setControlValue("alias", alias);
+					describe();
+				}).open();
+			}),
+		);
+	}
+
 	private renderSecret(setting: Setting, refKey: "s3SecretKeyRef" | "httpSecretRef", id: string): void {
 		const settings = this.plugin.settings;
 		const address = () => (refKey === "s3SecretKeyRef" ? settings.s3Endpoint : settings.httpUrl);
@@ -451,6 +459,65 @@ class EncryptionSetupModal extends Modal {
 					.onClick(async () => {
 						await this.onConfirm(this.key);
 						this.close();
+					});
+			});
+		update();
+	}
+
+	onClose(): void {
+		this.contentEl.empty();
+	}
+}
+
+/** Changing the storage name breaks every existing link, so it takes a warning and a deliberate step. */
+class StorageNameModal extends Modal {
+	constructor(
+		app: App,
+		private readonly plugin: KeyholePlugin,
+		private readonly onConfirm: (alias: string) => Promise<void>,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		const current = this.plugin.settings.alias;
+		this.setTitle(t("settings.alias.modal.title"));
+		this.contentEl.createEl("p", { text: t("settings.alias.modal.text", { alias: current }) });
+		const usage = this.contentEl.createEl("p", { text: t("settings.alias.modal.counting") });
+		void this.plugin.files.linksUsingAlias().then(({ links, notes }) => {
+			usage.setText(
+				links
+					? t("settings.alias.modal.used", { alias: current, links, notes })
+					: t("settings.alias.modal.unused", { alias: current }),
+			);
+			usage.toggleClass("keyhole-warning", links > 0);
+		});
+
+		let value = current;
+		let confirm: HTMLButtonElement | null = null;
+		const hint = createEl("p", { cls: "keyhole-field-hint" });
+		const update = () => {
+			const valid = /^[a-z0-9][a-z0-9-]{0,31}$/.test(value);
+			hint.setText(valid ? "" : t("settings.alias.invalid"));
+			if (confirm) confirm.disabled = !valid || value === current;
+		};
+		new Setting(this.contentEl).setName(t("settings.alias.modal.new")).addText((input) => {
+			input.setValue(current).onChange((v) => {
+				value = v.trim();
+				update();
+			});
+		});
+		this.contentEl.appendChild(hint);
+		new Setting(this.contentEl)
+			.addButton((b) => b.setButtonText(t("common.cancel")).setCta().onClick(() => this.close()))
+			.addButton((b) => {
+				confirm = b.buttonEl;
+				b.setButtonText(t("settings.alias.modal.confirm"))
+					.setDestructive()
+					.onClick(async () => {
+						this.close();
+						await this.onConfirm(value);
+						new Notice(t("settings.alias.changed", { alias: value }));
 					});
 			});
 		update();
