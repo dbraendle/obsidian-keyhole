@@ -43,6 +43,10 @@ Manual install: download `main.js`, `manifest.json` and `styles.css` from the [l
 
 ![Keyhole settings](docs/images/desktop-6-settings-storage.png)
 
+The first time you enable Keyhole, a **set-up guide** opens and goes through it step by step: connect your storage and test it, choose what is uploaded, decide about encryption, place the upload button (on phones) and move the attachments you already have. You can leave it at any point and open it again from the settings or the command palette. On a second device that already has the vault's settings, a short version only asks for what never syncs: the secret and, if you use encryption, the key.
+
+The same by hand:
+
 1. Enable Keyhole under *Settings → Community plugins*.
 2. Open **Settings → Keyhole** and choose your storage.
 3. Enter the endpoint, bucket and access key ID, or your server URL.
@@ -78,6 +82,8 @@ Put it behind HTTPS with a publicly trusted certificate (iOS ignores self-instal
 ![Hint bar on a note with local attachments](docs/images/01-hint.png)
 
 Notes that still have local attachments show a small bar: **Move to Keyhole** uploads them (images shrunk), rewrites the embeds (sizes like `|300` are kept) and moves the local files to the trash. Files that other notes or canvases still use are kept. Shrinking is lossy: if you want to keep originals in full quality, switch off *Shrink images before upload* or *Remove local copies after moving* first. The same is available as a command and in the note's ⋯ menu.
+
+To move everything at once, open the **File overview** and press **Move all**: every attachment that a note shows and that matches the upload settings is uploaded, one after the other. Let your other devices sync first.
 
 ### Your way out
 

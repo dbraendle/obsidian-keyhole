@@ -7,6 +7,25 @@ import type { KeyholeSettings } from "./settings";
 import type { StoredFile, Uploader } from "./upload";
 import { shouldUpload } from "./upload-rules";
 
+/** The file is linked, but no note shows it as an embed: there is nothing to rewrite. */
+export class NotEmbeddedError extends Error {}
+
+interface MovePlan {
+	file: TFile;
+	uses: { note: TFile; embeds: EmbedCache[] }[];
+	/** A plain link or a property points at the file too: it must stay in the vault. */
+	linkedOtherwise: boolean;
+}
+
+export interface MoveAllResult {
+	moved: number;
+	trashed: number;
+	skipped: number;
+	failed: string[];
+	before: number;
+	after: number;
+}
+
 export interface MigrateContext {
 	app: App;
 	settings: () => KeyholeSettings;
@@ -144,10 +163,15 @@ export class Migrator {
 	 * afterwards (a plain link or a canvas keeps it).
 	 */
 	async moveFile(file: TFile): Promise<{ stored: StoredFile; notes: number; trashed: boolean }> {
+		return this.executeMove(this.planMove(file));
+	}
+
+	/** Where the file is embedded, read from the link index. Does not change anything. */
+	private planMove(file: TFile): MovePlan {
 		const { app } = this.ctx;
 		const { metadataCache } = app;
 		const pointsHere = (link: string, note: TFile) => metadataCache.getFirstLinkpathDest(getLinkpath(link), note.path) === file;
-		const uses: { note: TFile; embeds: EmbedCache[] }[] = [];
+		const uses: MovePlan["uses"] = [];
 		let linkedOtherwise = false;
 		for (const [source, targets] of Object.entries(metadataCache.resolvedLinks)) {
 			if (!((targets[file.path] ?? 0) > 0)) continue;
@@ -159,7 +183,12 @@ export class Migrator {
 			if (links.some((l) => pointsHere(l.link, note))) linkedOtherwise = true;
 			if (embeds.length) uses.push({ note, embeds });
 		}
-		if (!uses.length) throw new Error(t("overview.notEmbedded"));
+		return { file, uses, linkedOtherwise };
+	}
+
+	private async executeMove({ file, uses, linkedOtherwise }: MovePlan): Promise<{ stored: StoredFile; notes: number; trashed: boolean }> {
+		const { app } = this.ctx;
+		if (!uses.length) throw new NotEmbeddedError(t("overview.notEmbedded"));
 
 		const data = await app.vault.readBinary(file);
 		const stored = await this.ctx.uploader.store(new File([data], file.name, { type: mimeOf(file.name) }), file.name);
@@ -186,6 +215,46 @@ export class Migrator {
 			trashed = true;
 		}
 		return { stored, notes: uses.length, trashed };
+	}
+
+	/** Local attachments that Keyhole takes (type and size) and that at least one note links to. */
+	movable(): TFile[] {
+		const { vault, metadataCache } = this.ctx.app;
+		const settings = this.ctx.settings();
+		const linked = new Set<string>();
+		for (const targets of Object.values(metadataCache.resolvedLinks)) for (const path of Object.keys(targets)) linked.add(path);
+		return vault
+			.getFiles()
+			.filter(
+				(file) =>
+					isAttachment(file.extension) &&
+					linked.has(file.path) &&
+					shouldUpload({ name: file.name, type: mimeOf(file.name), size: file.stat.size }, settings),
+			);
+	}
+
+	/** Moves the given attachments one after the other. A failure does not stop the rest. */
+	async moveAll(files: TFile[], onProgress: (done: number, total: number) => void): Promise<MoveAllResult> {
+		const result: MoveAllResult = { moved: 0, trashed: 0, skipped: 0, failed: [], before: 0, after: 0 };
+		// Plan everything first: once notes are rewritten, the link index lags behind for a moment,
+		// and a second attachment of the same note would look as if nothing embedded it.
+		const plans = files.map((file) => this.planMove(file));
+		for (const [i, plan] of plans.entries()) {
+			const { file } = plan;
+			onProgress(i, files.length);
+			try {
+				const { stored, trashed } = await this.executeMove(plan);
+				result.moved++;
+				if (trashed) result.trashed++;
+				result.before += stored.originalBytes;
+				result.after += stored.bytes;
+			} catch (err) {
+				if (err instanceof NotEmbeddedError) result.skipped++;
+				else result.failed.push(`${file.name} (${messageOf(err)})`);
+			}
+		}
+		onProgress(files.length, files.length);
+		return result;
 	}
 
 	private async usedElsewhere(file: TFile, note: TFile): Promise<boolean> {

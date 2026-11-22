@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0
+
+- Set-up guide: the first time Keyhole is enabled in a vault without storage, a guide goes through storage (with a connection test), uploads, encryption, the upload button on phones and the attachments already in the vault. On a device that has the vault's settings but not its secret or encryption key, a short version asks only for those. Both open once, can be left at any point, and are available again from the settings and the command palette.
+- "Move all" in the file overview moves every local attachment that notes show to the storage in one go.
+
 ## 0.9.0
 
 - The upload button in the mobile toolbar can take the place of the paper clip, so that the one button left uploads instead of saving into the vault. The setting has three choices now: not in the toolbar, next to the paper clip, instead of the paper clip. Keyhole puts the paper clip back when it is switched off or uninstalled.
