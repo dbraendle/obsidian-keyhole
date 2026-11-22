@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.4
+
+- Adds Buy Me a Coffee as a third funding link. No functional change.
+
 ## 0.11.3
 
 - Adds Ko-fi as a second funding link. No functional change.
