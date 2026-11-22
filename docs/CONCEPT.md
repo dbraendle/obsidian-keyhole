@@ -105,7 +105,7 @@ With it, the storage provider sees only ciphertext and no file names. It is off 
 
 ## Roadmap
 
-Done: moving a note's local attachments (0.2), image shrinking (0.2), the way back into the vault and storage clean-up (0.4), the file overview and the metadata choice (0.8).
+Done: moving a note's local attachments (0.2), image shrinking (0.2), the way back into the vault and storage clean-up (0.4), the file overview and the metadata choice (0.8), the set-up guide and "move all" (0.10).
 
 1. **Next**
    - Uploads in parts for the Keyhole server too (S3 has them since 0.5).

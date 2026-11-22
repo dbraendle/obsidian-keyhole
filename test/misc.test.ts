@@ -188,3 +188,16 @@ describe("mobile toolbar modes", () => {
 		expect(restoreAttach([A, K])).toEqual([A, K]);
 	});
 });
+
+describe("applyReplacements with stale offsets", () => {
+	it("still finds an embed after an earlier rewrite moved the text", async () => {
+		const { applyReplacements } = await import("../src/migrate-rules");
+		// Offsets were computed on the original note; the first embed has been rewritten since.
+		const original = "![[a.png]]\n\n![[b.png]]\n";
+		const afterFirst = original.replace("![[a.png]]", "![a.webp](keyhole://main/2026/11/x.khe#a.webp)");
+		const start = original.indexOf("![[b.png]]");
+		const out = applyReplacements(afterFirst, [{ start, end: start + 10, original: "![[b.png]]", replacement: "![b.webp](keyhole://main/2026/11/y.khe#b.webp)" }]);
+		expect(out.applied).toBe(1);
+		expect(out.text).toBe("![a.webp](keyhole://main/2026/11/x.khe#a.webp)\n\n![b.webp](keyhole://main/2026/11/y.khe#b.webp)\n");
+	});
+});

@@ -1,5 +1,6 @@
 import { MarkdownView, Modal, Notice, Platform, Plugin, Setting, TFile, type App } from "obsidian";
 import { OverviewModal } from "./overview";
+import { SetupModal, type SetupMode } from "./setup";
 import { applyToolbarMode, ATTACH_COMMAND_ID, isPlacedAfterAttach, restoreAttach, toolbarMode, UPLOAD_COMMAND_ID, type ToolbarMode } from "./toolbar";
 import { FileCache } from "./cache";
 import { parseUrl, type KeyholeRef } from "./link";
@@ -21,6 +22,9 @@ import { exportVaultKey, importVaultKey, keyFingerprint } from "./e2e/format";
 const MB = 1024 * 1024;
 const LINK_RE = /keyhole:\/\/[a-z0-9-]+\/[^\s)\]"'<>]+/gi;
 
+/** Device-local: the set-up guide was shown on this device. */
+const SETUP_SEEN_KEY = "keyhole-setup-seen";
+
 export default class KeyholePlugin extends Plugin {
 	settings: KeyholeSettings = { ...DEFAULT_SETTINGS };
 	private backend: StorageBackend | null = null;
@@ -31,6 +35,8 @@ export default class KeyholePlugin extends Plugin {
 	files!: FileActions;
 	/** Opens the overview of local and uploaded files. */
 	openOverview: () => void = () => undefined;
+	/** Opens the set-up guide. */
+	openSetup: (mode: SetupMode) => void = () => undefined;
 	private hint: LocalAttachmentHint | null = null;
 
 	async onload(): Promise<void> {
@@ -82,6 +88,8 @@ export default class KeyholePlugin extends Plugin {
 				files: this.files,
 			}).open();
 		this.addCommand({ id: "overview", name: t("command.overview"), icon: "list", callback: () => this.openOverview() });
+		this.openSetup = (mode) => new SetupModal(this.app, this, migrator, mode).open();
+		this.addCommand({ id: "setup", name: t("command.setup"), icon: "wand", callback: () => this.openSetup("full") });
 		const hint = new LocalAttachmentHint(this.app, migrator, () => this.settings);
 		this.hint = hint;
 		this.registerEvent(this.app.workspace.on("file-open", () => hint.update()));
@@ -168,7 +176,7 @@ export default class KeyholePlugin extends Plugin {
 			hint.update();
 			this.registerEvent(this.app.workspace.on("window-open", (_win, win) => this.watchWindow(win)));
 			this.reapplyToolbar();
-			if (Platform.isMobile) this.offerMobileToolbar();
+			if (!this.offerSetup() && Platform.isMobile) this.offerMobileToolbar();
 		});
 
 		this.addCommand({
@@ -551,6 +559,60 @@ export default class KeyholePlugin extends Plugin {
 		const config = this.coreConfig();
 		if (!config || !this.settings?.toolbarReplacesAttach) return;
 		config.set("mobileToolbarCommands", restoreAttach(this.toolbarCommands(config)));
+	}
+
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.settings);
+		this.onSettingsChanged();
+	}
+
+	/** The storage address and account are filled in (they sync with the vault). */
+	storageConfigured(): boolean {
+		const s = this.settings;
+		return s.storageType === "s3" ? Boolean(s.s3Endpoint && s.s3Bucket && s.s3AccessKeyId) : Boolean(s.httpUrl);
+	}
+
+	/** This device has the secret for the configured storage. */
+	secretUsable(): boolean {
+		if (!this.storageConfigured()) return false;
+		try {
+			this.createBackend();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Offers the set-up guide once: the full one for a vault that has no storage yet,
+	 * the short one on a device that lacks the secret or the encryption key of a vault
+	 * set up elsewhere. "Once" is per vault for the full guide (a synced setting) and
+	 * per device for the short one. Returns true if a guide opened.
+	 */
+	private offerSetup(): boolean {
+		const seenHere = this.app.loadLocalStorage(SETUP_SEEN_KEY) === "1";
+		let mode: SetupMode;
+		if (!this.storageConfigured()) {
+			if (this.settings.setupDone || seenHere) return false;
+			mode = "full";
+		} else {
+			const incomplete = !this.secretUsable() || (this.settings.e2eFingerprint !== "" && !this.keyMatches);
+			if (!incomplete || seenHere) {
+				if (!this.settings.setupDone) {
+					this.settings.setupDone = true;
+					void this.saveData(this.settings);
+				}
+				return false;
+			}
+			mode = "device";
+		}
+		this.app.saveLocalStorage(SETUP_SEEN_KEY, "1");
+		this.settings.setupDone = true;
+		// The guide asks about the toolbar itself.
+		if (Platform.isMobile) this.settings.toolbarPrompted = true;
+		void this.saveData(this.settings);
+		this.openSetup(mode);
+		return true;
 	}
 
 	/** Asks once (per vault, synced) whether to place the upload button in the mobile toolbar. */

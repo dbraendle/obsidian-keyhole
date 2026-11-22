@@ -30,6 +30,11 @@ export class KeyholeSettingTab extends PluginSettingTab {
 				heading: t("settings.storage"),
 				items: [
 					{
+						name: t("settings.setup"),
+						desc: t("settings.setup.desc"),
+						action: () => this.plugin.openSetup("full"),
+					},
+					{
 						name: t("settings.storageType"),
 						desc: t("settings.storageType.desc"),
 						control: {
@@ -431,7 +436,7 @@ export class KeyholeSettingTab extends PluginSettingTab {
  * saved before anything is encrypted with it: the button stays off until the key
  * was pasted back (from wherever it was saved) and the consequence was acknowledged.
  */
-class EncryptionSetupModal extends Modal {
+export class EncryptionSetupModal extends Modal {
 	private readonly key = generateVaultKey();
 
 	constructor(

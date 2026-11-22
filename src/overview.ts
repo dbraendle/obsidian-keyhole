@@ -5,6 +5,7 @@ import { displayName, isEncryptedKey, normalizePrefix, parseUrl, type KeyholeRef
 import type { Migrator } from "./migrate";
 import { findUrls, formatBytes, isAttachment } from "./migrate-rules";
 import { mimeOf } from "./mime";
+import { confirmMoveAll, movableSummary } from "./move-all";
 import { filterByName, sortLocal, type LocalEntry } from "./overview-rules";
 import { messageOf } from "./render";
 import type { KeyholeSettings } from "./settings";
@@ -170,10 +171,32 @@ export class OverviewModal extends Modal {
 		if (!el) return;
 		el.empty();
 		el.createEl("p", { cls: "setting-item-description", text: t(this.tab === "local" ? "overview.intro.local" : "overview.intro.remote") });
+		if (this.tab === "local") this.renderMoveAll(el);
 		if (this.tab === "local") this.renderRows(el, filterByName(this.local, this.filter), (list, row) => this.localRow(list, row), "overview.empty.local");
 		else if (this.remote === null) el.createEl("p", { text: t("overview.loading") });
 		else if (this.remoteError) el.createEl("p", { cls: "keyhole-status-error", text: this.remoteError });
 		else this.renderRows(el, filterByName(this.remote, this.filter), (list, row) => this.remoteRow(list, row), "overview.empty.remote");
+	}
+
+	private renderMoveAll(el: HTMLElement): void {
+		const { count, bytes } = movableSummary(this.ctx.migrator);
+		if (!count) return;
+		new Setting(el)
+			.setName(t("moveAll.name", { count, size: formatBytes(bytes) }))
+			.setDesc(t("moveAll.desc"))
+			.addButton((b) =>
+				b
+					.setButtonText(t("moveAll.button"))
+					.setCta()
+					.setDisabled(this.busy)
+					.onClick(() =>
+						confirmMoveAll(this.ctx.app, this.ctx.migrator, () => {
+							this.loadLocal();
+							this.render();
+							void this.loadRemote();
+						}),
+					),
+			);
 	}
 
 	private renderRows<T>(el: HTMLElement, rows: T[], draw: (list: HTMLElement, row: T) => void, emptyKey: "overview.empty.local" | "overview.empty.remote"): void {
