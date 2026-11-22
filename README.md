@@ -1,23 +1,37 @@
 # Keyhole
 
-Keep your attachments on your own private storage. Drop or paste an image, PDF, recording, video or any other file into a note. Keyhole uploads it to your S3-compatible bucket or your own server and writes the link for you. When you view the note, Keyhole fetches the file with credentials that are stored only on your device. Your vault stays small, and the files stay private.
+Keep your Obsidian attachments on storage that belongs to you. Drop or paste a file into a note as usual: Keyhole uploads it to your own S3-compatible bucket, WebDAV or server and shows it in the note. Your vault stays small, and nothing is ever public.
+
+![Drop in a file. It goes to your storage: a note showing a picture, a video, an audio file and a PDF that all load from private storage](docs/listing/desktop-1-note.png)
+
+**[Install from the Obsidian community directory](https://community.obsidian.md/plugins/keyhole)** · [Set-up](#setup) · [Privacy](#privacy-and-network-use) · [Limitations](#limitations)
+
+## What it does
 
 - **Private by design:** nothing is publicly readable. Notes contain only `keyhole://` links, never tokens or signed URLs.
-- **Secrets stay on the device:** secret keys, tokens and passwords live in Obsidian's keychain, not in your vault, so they are never synced or committed to Git.
+- **Secrets stay on the device:** keys, tokens and passwords live in Obsidian's keychain, not in your vault, so they are never synced or committed to Git.
+- **All kinds of files:** pictures, PDFs rendered in the note, audio and video (streamed from S3 or the Keyhole server), and any other file as a download card. One switch per kind decides what is uploaded.
 - **Works where attachments work:** Reading view, Live Preview, hover previews, Canvas and the image viewer, on desktop and mobile.
-- **All kinds of files:**
-  - images;
-  - PDFs, rendered in the note;
-  - audio and video, streamed from S3 or the Keyhole server;
-  - any other file, as a download card.
-- **End-to-end encryption (optional):** files are encrypted on your device before upload, so the storage provider sees neither content nor file names.
+- **Optional end-to-end encryption:** files are encrypted on your device before upload, so the storage provider sees neither content nor file names.
+- **Smaller pictures, no location data:** photos are shrunk on the device, and you choose what happens to their metadata.
 - **Offline:** files you have viewed are kept on the device, up to a size limit you choose.
-- **Upload many files at once:** the *Upload files* button opens your system's picker with multi-select. On a phone that means the photo library, the camera or the Files app.
+- **No lock-in:** every file can come back into the vault as a normal attachment, one by one or all at once.
 - **Never lose a file:** if an upload fails (you are offline, say), the file is saved as a normal local attachment instead.
 
-![A note whose photo, PDF and voice memo live in private storage](docs/images/desktop-1-note.png)
+| | |
+|---|---|
+| ![See where every attachment lives: the file overview](docs/listing/desktop-2-overview.png) | ![Optional end-to-end encryption](docs/listing/desktop-3-encryption.png) |
+| ![Smaller pictures, no location data](docs/listing/desktop-4-pictures.png) | ![Bring any file back. No lock-in.](docs/listing/desktop-5-bring-back.png) |
 
-> Status: beta. Tested on macOS and iPhone; Android still needs testing. Design notes: [docs/CONCEPT.md](docs/CONCEPT.md).
+On phones and tablets:
+
+<p>
+  <img src="docs/listing/mobile-1-note.png" alt="Your attachments on every device" width="32%">
+  <img src="docs/listing/mobile-2-insert.png" alt="Add a photo, skip the vault: the upload button next to the paper clip" width="32%">
+  <img src="docs/listing/mobile-3-move.png" alt="Photos already in the vault? One tap moves them to your storage" width="32%">
+</p>
+
+> Status: beta. Tested on macOS and iPhone. What was added since 0.5 (encryption, large uploads, the file overview, the set-up guide) has not been tested on a phone yet, and Android still needs testing. Design notes: [docs/CONCEPT.md](docs/CONCEPT.md).
 
 ## Storage you can use
 
@@ -31,17 +45,11 @@ Keep your bucket **private**. Keyhole never needs public access, and it needs no
 
 ## Install
 
-Keyhole is not in the community plugin directory yet. Until it is, install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat):
-
-1. Install **BRAT** from *Settings → Community plugins → Browse* and enable it.
-2. Run the command **BRAT: Add a beta plugin for testing** and enter `dbraendle/obsidian-keyhole`.
-3. BRAT installs Keyhole, keeps it up to date and, if you use Obsidian Sync with community plugins enabled, your other devices get it too.
+Open *Settings → Community plugins → Browse* in Obsidian, search for **Keyhole**, install and enable it. Or start from its [page in the community directory](https://community.obsidian.md/plugins/keyhole).
 
 Manual install: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/dbraendle/obsidian-keyhole/releases/latest) into `<vault>/.obsidian/plugins/keyhole/`.
 
 ## Setup
-
-![Keyhole settings](docs/images/desktop-6-settings-storage.png)
 
 The first time you enable Keyhole, a **set-up guide** opens and goes through it step by step: connect your storage and test it, choose what is uploaded, decide about encryption, place the upload button (on phones) and move the attachments you already have. You can leave it at any point and open it again from the settings or the command palette. On a second device that already has the vault's settings, a short version only asks for what never syncs: the secret and, if you use encryption, the key.
 
@@ -88,8 +96,6 @@ To move everything at once, open the **File overview** and press **Move all**: e
 ### Your way out
 
 **File overview** (settings or command palette) shows in one window which attachments are stored in the vault and which are in your storage, with sizes. Each file can be uploaded or brought back on its own.
-
-![File overview: attachments in the vault, each with an upload button](docs/images/desktop-2-overview-vault.png)
 
 **Bring all Keyhole files back into the vault** (settings or command palette) turns every Keyhole file into a normal attachment again. Your storage keeps its copies. You are never locked in.
 
