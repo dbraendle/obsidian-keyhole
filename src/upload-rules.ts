@@ -35,14 +35,43 @@ export function nameFor(file: { name: string; type: string }, now: Date = new Da
 }
 
 /**
+ * Does the HTML show any text? Walks over the markup and looks only at what lies
+ * between tags, skipping comments and the contents of script and style. The answer
+ * is a plain yes or no: the HTML is never rendered, parsed into a document or kept.
+ */
+export function htmlHasText(html: string): boolean {
+	const lower = html.toLowerCase();
+	let at = 0;
+	while (at < html.length) {
+		const tag = html.indexOf("<", at);
+		const between = html.slice(at, tag < 0 ? html.length : tag);
+		if (between.split("&nbsp;").join(" ").split("\u00a0").join(" ").trim()) return true;
+		if (tag < 0) return false;
+		if (lower.startsWith("<!--", tag)) {
+			const end = html.indexOf("-->", tag + 4);
+			if (end < 0) return false;
+			at = end + 3;
+			continue;
+		}
+		const close = html.indexOf(">", tag);
+		if (close < 0) return false;
+		const raw = ["script", "style"].find((name) => lower.startsWith(`<${name}`, tag) && !/[a-z0-9-]/.test(lower.charAt(tag + name.length + 1)));
+		if (raw) {
+			const end = lower.indexOf(`</${raw}`, close);
+			const endClose = end < 0 ? -1 : html.indexOf(">", end);
+			if (endClose < 0) return false;
+			at = endClose + 1;
+			continue;
+		}
+		at = close + 1;
+	}
+	return false;
+}
+
+/**
  * Rich text copied from Office, browsers or mail clients often carries a picture
  * of the selection as well. If the clipboard holds real text, the user meant the text.
  */
 export function clipboardIsRichText(data: DataTransfer): boolean {
-	if (!data.types.includes("text/html")) return false;
-	// Parsed, not picked apart with patterns: the parser's document is inert (no scripts
-	// run, nothing loads), and only its text is looked at.
-	const doc = new DOMParser().parseFromString(data.getData("text/html"), "text/html");
-	doc.querySelectorAll("script, style, img").forEach((el) => el.remove());
-	return (doc.body.textContent ?? "").replace(/\u00a0/g, " ").trim().length > 0;
+	return data.types.includes("text/html") && htmlHasText(data.getData("text/html"));
 }

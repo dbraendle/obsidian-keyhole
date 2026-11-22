@@ -210,3 +210,36 @@ describe("applyReplacements with stale offsets", () => {
 		expect(out.text).toBe("![a.webp](keyhole://main/2026/11/x.khe#a.webp)\n\n![b.webp](keyhole://main/2026/11/y.khe#b.webp)\n");
 	});
 });
+
+describe("htmlHasText", () => {
+	it("says no for pictures, whitespace, comments, style and script", async () => {
+		const { htmlHasText } = await import("../src/upload-rules");
+		for (const html of [
+			"",
+			'<meta charset="utf-8"><img src="https://example.com/a.png" alt="">',
+			'<p>&nbsp;  </p><img src="x.png">',
+			"<!--StartFragment--><img src=x><!--EndFragment-->",
+			'<style>p{color:red}</style><script>var a = "text"</script><img src="x.png">',
+			"<STYLE>p{}</STYLE><Script>x</Script>",
+			"<!-- never closed <p>text</p>",
+			"<script>never closed",
+			"<img src=x",
+		]) {
+			expect(htmlHasText(html), html).toBe(false);
+		}
+	});
+
+	it("says yes as soon as there is text between tags", async () => {
+		const { htmlHasText } = await import("../src/upload-rules");
+		for (const html of [
+			"plain",
+			"<p>Quarterly numbers</p><img src=x>",
+			'<html><head><style>p{}</style></head><body><!--StartFragment--><p>Hi</p><img src="file:///tmp/x.png"><!--EndFragment--></body></html>',
+			"<scr<script>ipt>alert(1)</script>",
+			"<scripted>custom element text</scripted>",
+			"<img src=x> trailing",
+		]) {
+			expect(htmlHasText(html), html).toBe(true);
+		}
+	});
+});
