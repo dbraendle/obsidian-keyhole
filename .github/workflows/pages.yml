@@ -1,0 +1,73 @@
+name: Pages
+
+# Publishes the website (site/ plus the screenshots in docs/listing/) to GitHub
+# Pages. Runs on pushes to main that touch the site; nothing here touches the
+# plugin release. The same checks as in CI run before anything is deployed.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "docs/listing/**"
+      - "scripts/assemble-site.sh"
+      - "scripts/check-site.sh"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Assemble the site
+        run: scripts/assemble-site.sh _site
+      - name: Validate HTML and CSS, no third-party requests
+        run: scripts/check-site.sh _site
+      - name: Internal links and image paths resolve
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --include-fragments --index-files index.html --no-progress '_site/**/*.html'
+          fail: true
+          jobSummary: false
+          output: lychee.md
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # A failed deployment leaves the previous version online.
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: Health check
+        env:
+          URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          for i in $(seq 1 12); do
+            if curl -fsS "$URL" -o page.html && grep -q 'community.obsidian.md/plugins/keyhole' page.html \
+              && curl -fsSI "${URL}listing/desktop-1-note.png" | grep -qi '^content-type: image/png'; then
+              echo "Live: $URL"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "The deployed site does not answer as expected: $URL" >&2
+          echo "Roll back by re-running the last good run of this workflow." >&2
+          exit 1

@@ -32,6 +32,24 @@ jobs:
             if (v[m.version] !== m.minAppVersion) throw new Error(`versions.json lacks ${m.version} -> ${m.minAppVersion}`);
           '
 
+  site:
+    # The website in site/ (published by pages.yml): valid HTML and CSS, every
+    # internal link, anchor and image path resolves, nothing from third parties.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Assemble the site
+        run: scripts/assemble-site.sh _site
+      - name: Validate HTML and CSS, no third-party requests
+        run: scripts/check-site.sh _site
+      - name: Internal links and image paths resolve
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --include-fragments --index-files index.html --no-progress '_site/**/*.html'
+          fail: true
+          jobSummary: false
+          output: lychee.md
+
   s3-smoke:
     # SigV4 against a real S3-compatible server (throwaway SeaweedFS, test credentials only).
     runs-on: ubuntu-latest
