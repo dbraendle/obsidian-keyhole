@@ -155,3 +155,36 @@ describe("storage listings", () => {
 		]);
 	});
 });
+
+describe("mobile toolbar modes", () => {
+	const A = "editor:attach-file";
+	const K = "keyhole:upload-files";
+
+	it("replaces the paper clip in place and remembers that it did", async () => {
+		const { applyToolbarMode, toolbarMode } = await import("../src/toolbar");
+		const out = applyToolbarMode(["undo", A, "bold"], "replace", false);
+		expect(out).toEqual({ commands: ["undo", K, "bold"], removedAttach: true });
+		expect(toolbarMode(out.commands, out.removedAttach)).toBe("replace");
+	});
+
+	it("brings the paper clip back when leaving replace, in the same place", async () => {
+		const { applyToolbarMode } = await import("../src/toolbar");
+		expect(applyToolbarMode(["undo", K, "bold"], "beside", true)).toEqual({ commands: ["undo", A, K, "bold"], removedAttach: false });
+		expect(applyToolbarMode(["undo", K, "bold"], "off", true)).toEqual({ commands: ["undo", A, "bold"], removedAttach: false });
+	});
+
+	it("never adds a paper clip the user removed themselves", async () => {
+		const { applyToolbarMode, toolbarMode } = await import("../src/toolbar");
+		expect(applyToolbarMode(["undo", "bold"], "replace", false)).toEqual({ commands: [K, "undo", "bold"], removedAttach: false });
+		expect(applyToolbarMode([K, "undo"], "off", false)).toEqual({ commands: ["undo"], removedAttach: false });
+		expect(toolbarMode([K, "undo"], false)).toBe("beside");
+		expect(toolbarMode(["undo", A], false)).toBe("off");
+	});
+
+	it("restoreAttach puts the paper clip where the upload button is and is a no-op otherwise", async () => {
+		const { restoreAttach } = await import("../src/toolbar");
+		expect(restoreAttach(["undo", K, "bold"])).toEqual(["undo", A, K, "bold"]);
+		expect(restoreAttach(["undo"])).toEqual([A, "undo"]);
+		expect(restoreAttach([A, K])).toEqual([A, K]);
+	});
+});

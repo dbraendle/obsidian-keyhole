@@ -35,6 +35,8 @@ export interface KeyholeSettings {
 	/** What happens to the metadata of uploaded pictures, whether they are shrunk or not. */
 	imageMetadata: MetadataMode;
 	toolbarPrompted: boolean;
+	/** Keyhole took the paper clip out of the mobile toolbar (the user chose "instead of"), so it puts it back when it goes. */
+	toolbarReplacesAttach: boolean;
 	trashMovedAttachments: boolean;
 	suggestMove: boolean;
 	limitEditHeight: boolean;
@@ -76,6 +78,7 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 	imageQuality: 85,
 	imageMetadata: "strip",
 	toolbarPrompted: false,
+	toolbarReplacesAttach: false,
 	trashMovedAttachments: true,
 	suggestMove: true,
 	limitEditHeight: true,

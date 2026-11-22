@@ -54,10 +54,12 @@ export const en = {
 	"move.onlyMissing": "Keyhole: 1 attachment of this note is not on this device (not synced yet?). Try again later or on another device.|Keyhole: {count} attachments of this note are not on this device (not synced yet?). Try again later or on another device.",
 
 	// Mobile toolbar prompt
-	"toolbar.title": "Add the upload button to the toolbar?",
+	"toolbar.title": "Where should the upload button go?",
 	"toolbar.text":
-		"Keyhole can put its upload button right next to the paper clip in the toolbar above the keyboard. With it you can pick several photos or files at once.",
-	"toolbar.add": "Add button",
+		"The paper clip in the toolbar above the keyboard saves files into your vault. Keyhole's button works the same way, but uploads the file to your storage and lets you pick several at once. You can change this later in the settings.",
+	"toolbar.beside.desc": "Both buttons: the paper clip saves into the vault, the cloud uploads.",
+	"toolbar.replace.desc": "One button that uploads. Keyhole puts the paper clip back when it is switched off or uninstalled.",
+	"toolbar.choose": "Choose",
 	"toolbar.notNow": "Not now",
 
 	// Rendering
@@ -198,7 +200,11 @@ export const en = {
 	"settings.metadata.strip": "Remove everything",
 	"settings.toolbar": "Upload button in the mobile toolbar",
 	"settings.toolbar.desc":
-		"On: the upload button sits right after the attachment (paper clip) button in the toolbar above the keyboard on phones and tablets. Off: it is not in that toolbar.",
+		"Where Keyhole's upload button sits in the toolbar above the keyboard on phones and tablets. “Instead of the paper clip” takes Obsidian's own attachment button out of the toolbar, so the one button left uploads; Keyhole puts the paper clip back when it is switched off or uninstalled.",
+	"settings.toolbar.off": "Not in the toolbar",
+	"settings.toolbar.beside": "Next to the paper clip",
+	"settings.toolbar.replace": "Instead of the paper clip",
+	"notice.toolbarReplaced": "Keyhole: the upload button took the place of the paper clip in the mobile toolbar.",
 	"settings.toolbar.unavailable": "This Obsidian version does not let plugins change the mobile toolbar. Add the command “Upload files” yourself under Settings → Toolbar.",
 	"settings.maxUpload": "Maximum upload size (MB)",
 	"settings.maxUpload.desc": "Larger files are left to Obsidian.",

@@ -1,6 +1,6 @@
 import { MarkdownView, Modal, Notice, Platform, Plugin, Setting, TFile, type App } from "obsidian";
 import { OverviewModal } from "./overview";
-import { isPlacedAfterAttach, placeAfterAttach, UPLOAD_COMMAND_ID } from "./toolbar";
+import { applyToolbarMode, ATTACH_COMMAND_ID, isPlacedAfterAttach, restoreAttach, toolbarMode, UPLOAD_COMMAND_ID, type ToolbarMode } from "./toolbar";
 import { FileCache } from "./cache";
 import { parseUrl, type KeyholeRef } from "./link";
 import { Renderer, messageOf } from "./render";
@@ -167,6 +167,7 @@ export default class KeyholePlugin extends Plugin {
 			for (const win of windows) this.watchWindow(win);
 			hint.update();
 			this.registerEvent(this.app.workspace.on("window-open", (_win, win) => this.watchWindow(win)));
+			this.reapplyToolbar();
 			if (Platform.isMobile) this.offerMobileToolbar();
 		});
 
@@ -274,6 +275,7 @@ export default class KeyholePlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.restoreToolbar();
 		this.hint?.clear();
 		this.app.workspace.iterateAllLeaves((leaf) => leaf.view.containerEl.doc.body.removeClass("keyhole-limit-edit-height"));
 		this.renderer?.disconnect();
@@ -507,35 +509,55 @@ export default class KeyholePlugin extends Plugin {
 		return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 	}
 
-	/** Is the upload button in the mobile toolbar? Null if this Obsidian version does not let plugins look. */
-	mobileToolbarState(): boolean | null {
+	/** Where the upload button is in the mobile toolbar. Null if this Obsidian version does not let plugins look. */
+	mobileToolbarMode(): ToolbarMode | null {
 		const config = this.coreConfig();
-		return config ? this.toolbarCommands(config).includes(UPLOAD_COMMAND_ID) : null;
+		return config ? toolbarMode(this.toolbarCommands(config), this.settings.toolbarReplacesAttach) : null;
 	}
 
-	/** Puts the upload button right after the paper clip in the mobile toolbar, or takes it out again. */
-	setMobileToolbar(on: boolean): void {
+	/** Takes the upload button out of the mobile toolbar, puts it after the paper clip, or puts it in the paper clip's place. */
+	async setMobileToolbar(mode: ToolbarMode): Promise<void> {
 		const config = this.coreConfig();
 		if (!config) {
 			new Notice(t("notice.toolbarUnavailable"));
 			return;
 		}
+		const next = applyToolbarMode(this.toolbarCommands(config), mode, this.settings.toolbarReplacesAttach);
+		config.set("mobileToolbarCommands", next.commands);
+		this.settings.toolbarReplacesAttach = next.removedAttach;
+		await this.saveData(this.settings);
+		new Notice(t(mode === "off" ? "notice.toolbarRemoved" : mode === "replace" ? "notice.toolbarReplaced" : "notice.toolbarAdded"));
+	}
+
+	/**
+	 * "Instead of the paper clip" survives a reload or an update of the plugin: unloading
+	 * puts the paper clip back (so it is there if the plugin never returns), loading takes
+	 * it out again. If the user removed the upload button in the meantime, the paper clip stays.
+	 */
+	private reapplyToolbar(): void {
+		const config = this.coreConfig();
+		if (!config || !this.settings.toolbarReplacesAttach) return;
 		const commands = this.toolbarCommands(config);
-		config.set("mobileToolbarCommands", on ? placeAfterAttach(commands) : commands.filter((c) => c !== UPLOAD_COMMAND_ID));
-		new Notice(t(on ? "notice.toolbarAdded" : "notice.toolbarRemoved"));
+		if (!commands.includes(UPLOAD_COMMAND_ID)) {
+			config.set("mobileToolbarCommands", restoreAttach(commands));
+			this.settings.toolbarReplacesAttach = false;
+			void this.saveData(this.settings);
+		} else if (commands.includes(ATTACH_COMMAND_ID)) {
+			config.set("mobileToolbarCommands", commands.filter((c) => c !== ATTACH_COMMAND_ID));
+		}
+	}
+
+	private restoreToolbar(): void {
+		const config = this.coreConfig();
+		if (!config || !this.settings?.toolbarReplacesAttach) return;
+		config.set("mobileToolbarCommands", restoreAttach(this.toolbarCommands(config)));
 	}
 
 	/** Asks once (per vault, synced) whether to place the upload button in the mobile toolbar. */
 	private offerMobileToolbar(): void {
 		const config = this.coreConfig();
 		if (!config || this.settings.toolbarPrompted || isPlacedAfterAttach(this.toolbarCommands(config))) return;
-		new ConfirmModal(
-			this.app,
-			t("toolbar.title"),
-			t("toolbar.text"),
-			t("toolbar.add"),
-			() => this.setMobileToolbar(true),
-		).open();
+		new ToolbarPromptModal(this.app, (mode) => void this.setMobileToolbar(mode)).open();
 		this.settings.toolbarPrompted = true;
 		void this.saveData(this.settings);
 	}
@@ -549,31 +571,31 @@ export default class KeyholePlugin extends Plugin {
 	}
 }
 
-class ConfirmModal extends Modal {
+/** Asked once on a phone or tablet: where the upload button goes. Nothing changes without a choice. */
+class ToolbarPromptModal extends Modal {
 	constructor(
 		app: App,
-		private readonly heading: string,
-		private readonly text: string,
-		private readonly confirmText: string,
-		private readonly onConfirm: () => void,
+		private readonly onChoose: (mode: ToolbarMode) => void,
 	) {
 		super(app);
 	}
 
 	onOpen(): void {
-		this.setTitle(this.heading);
-		this.contentEl.createEl("p", { text: this.text });
+		this.setTitle(t("toolbar.title"));
+		this.contentEl.createEl("p", { text: t("toolbar.text") });
+		const choose = (mode: ToolbarMode) => () => {
+			this.onChoose(mode);
+			this.close();
+		};
 		new Setting(this.contentEl)
-			.addButton((b) => b.setButtonText(t("toolbar.notNow")).onClick(() => this.close()))
-			.addButton((b) =>
-				b
-					.setButtonText(this.confirmText)
-					.setCta()
-					.onClick(() => {
-						this.onConfirm();
-						this.close();
-					}),
-			);
+			.setName(t("settings.toolbar.beside"))
+			.setDesc(t("toolbar.beside.desc"))
+			.addButton((b) => b.setButtonText(t("toolbar.choose")).setCta().onClick(choose("beside")));
+		new Setting(this.contentEl)
+			.setName(t("settings.toolbar.replace"))
+			.setDesc(t("toolbar.replace.desc"))
+			.addButton((b) => b.setButtonText(t("toolbar.choose")).onClick(choose("replace")));
+		new Setting(this.contentEl).addButton((b) => b.setButtonText(t("toolbar.notNow")).onClick(() => this.close()));
 	}
 
 	onClose(): void {

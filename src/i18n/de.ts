@@ -48,10 +48,12 @@ export const de: Record<TextKey, string> = {
 	"move.missing": "1 Anhang ist auf diesem Gerät nicht vorhanden (noch nicht synchronisiert?) und bleibt unverändert.|{count} Anhänge sind auf diesem Gerät nicht vorhanden (noch nicht synchronisiert?) und bleiben unverändert.",
 	"move.onlyMissing": "Keyhole: 1 Anhang dieser Notiz ist auf diesem Gerät nicht vorhanden (noch nicht synchronisiert?). Versuche es später oder auf einem anderen Gerät.|Keyhole: {count} Anhänge dieser Notiz sind auf diesem Gerät nicht vorhanden (noch nicht synchronisiert?). Versuche es später oder auf einem anderen Gerät.",
 
-	"toolbar.title": "Upload-Knopf in die Werkzeugleiste setzen?",
+	"toolbar.title": "Wohin soll der Upload-Knopf?",
 	"toolbar.text":
-		"Keyhole kann seinen Upload-Knopf direkt neben die Büroklammer in die Leiste über der Tastatur setzen. Damit wählst du mehrere Fotos oder Dateien auf einmal aus.",
-	"toolbar.add": "Knopf hinzufügen",
+		"Die Büroklammer in der Leiste über der Tastatur speichert Dateien in deinen Vault. Keyholes Knopf funktioniert genauso, lädt die Datei aber in deinen Speicher und lässt dich mehrere auf einmal auswählen. Du kannst das später in den Einstellungen ändern.",
+	"toolbar.beside.desc": "Beide Knöpfe: Die Büroklammer speichert in den Vault, die Wolke lädt hoch.",
+	"toolbar.replace.desc": "Ein Knopf, der hochlädt. Keyhole setzt die Büroklammer wieder ein, wenn es ausgeschaltet oder deinstalliert wird.",
+	"toolbar.choose": "Wählen",
 	"toolbar.notNow": "Nicht jetzt",
 
 	"render.uploading": "Wird hochgeladen …",
@@ -189,7 +191,11 @@ export const de: Record<TextKey, string> = {
 	"settings.metadata.strip": "Alles entfernen",
 	"settings.toolbar": "Upload-Knopf in der mobilen Werkzeugleiste",
 	"settings.toolbar.desc":
-		"An: Der Upload-Knopf sitzt auf Handy und Tablet direkt hinter der Büroklammer in der Leiste über der Tastatur. Aus: Er ist nicht in dieser Leiste.",
+		"Wo Keyholes Upload-Knopf auf Handy und Tablet in der Leiste über der Tastatur sitzt. „Statt der Büroklammer“ nimmt Obsidians eigenen Anhang-Knopf aus der Leiste, sodass der eine verbleibende Knopf hochlädt; Keyhole setzt die Büroklammer wieder ein, wenn es ausgeschaltet oder deinstalliert wird.",
+	"settings.toolbar.off": "Nicht in der Leiste",
+	"settings.toolbar.beside": "Neben der Büroklammer",
+	"settings.toolbar.replace": "Statt der Büroklammer",
+	"notice.toolbarReplaced": "Keyhole: Der Upload-Knopf sitzt jetzt anstelle der Büroklammer in der mobilen Werkzeugleiste.",
 	"settings.toolbar.unavailable": "Diese Obsidian-Version lässt Plugins die mobile Werkzeugleiste nicht ändern. Füge den Befehl „Dateien hochladen“ selbst unter Einstellungen → Werkzeugleiste hinzu.",
 	"settings.maxUpload": "Maximale Upload-Größe (MB)",
 	"settings.maxUpload.desc": "Größere Dateien überlässt Keyhole Obsidian.",
