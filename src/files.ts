@@ -64,8 +64,9 @@ export class FileActions {
 	/**
 	 * Downloads the given files (or all Keyhole files of the note) back into the
 	 * vault as normal attachments and rewrites the links. The copies in the storage stay.
+	 * Pass the same `saved` map for several notes and a file they share is saved once.
 	 */
-	async restore(note: TFile, only?: KeyholeRef[]): Promise<number> {
+	async restore(note: TFile, only?: KeyholeRef[], saved = new Map<string, TFile>()): Promise<number> {
 		const { app } = this.ctx;
 		const text = await app.vault.cachedRead(note);
 		const wanted = only ? new Set(only.map((r) => `${r.alias}/${r.key}`)) : null;
@@ -75,7 +76,7 @@ export class FileActions {
 		);
 		if (!links.length) return 0;
 
-		const saved = new Map<string, TFile>();
+		const before = saved.size;
 		for (const link of links) {
 			if (saved.has(link.ref.key)) continue;
 			// Through the resolver, so encrypted files come back decrypted.
@@ -98,7 +99,7 @@ export class FileActions {
 			}
 			return out;
 		});
-		return saved.size;
+		return saved.size - before;
 	}
 
 	async restoreNote(note: TFile): Promise<void> {

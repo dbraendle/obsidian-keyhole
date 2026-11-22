@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0
+
+- File overview (Settings → Keyhole, or the command palette): one window that lists the attachments stored in the vault and the files in your storage, with sizes. Each file can be uploaded or brought back on its own.
+- "Metadata in pictures" is a setting of its own now, independent of shrinking: keep everything, remove the location, or remove everything. JPEG and PNG are cleaned without re-encoding. Before, a picture lost all metadata when it was shrunk and kept all of it otherwise.
+- A picture that could not be made smaller was uploaded with its location even though shrinking was on. Its metadata is now treated like that of every other picture.
+- The upload button for the mobile toolbar is a switch that shows whether the button is there and removes it again.
+
+Existing settings keep their behaviour: with shrinking on, metadata is removed as before; with shrinking off, it is kept as before.
+
 ## 0.7.1
 
 - "Storage name in links" can no longer be changed by typing into a field. The setting shows the current name and explains what it is; changing it goes through a dialog that counts the links in the vault that would stop working.

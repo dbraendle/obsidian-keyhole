@@ -1,4 +1,7 @@
+import type { MetadataMode } from "./metadata";
+
 export type StorageType = "s3" | "webdav" | "keyhole";
+
 export type UploadScope = "all" | "media" | "images";
 
 /**
@@ -29,6 +32,8 @@ export interface KeyholeSettings {
 	optimizeImages: boolean;
 	imageMaxEdge: number;
 	imageQuality: number;
+	/** What happens to the metadata of uploaded pictures, whether they are shrunk or not. */
+	imageMetadata: MetadataMode;
 	toolbarPrompted: boolean;
 	trashMovedAttachments: boolean;
 	suggestMove: boolean;
@@ -69,6 +74,7 @@ export const DEFAULT_SETTINGS: KeyholeSettings = {
 	optimizeImages: true,
 	imageMaxEdge: 2560,
 	imageQuality: 85,
+	imageMetadata: "strip",
 	toolbarPrompted: false,
 	trashMovedAttachments: true,
 	suggestMove: true,
