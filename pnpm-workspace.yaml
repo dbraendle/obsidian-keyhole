@@ -1,3 +1,8 @@
 # esbuild ships its binary as an optional dependency; its postinstall script is not needed.
 allowBuilds:
   esbuild: false
+
+# minimatch 7–11.0.0 can be slowed down by crafted patterns (GHSA-g3hv-75wg-m249).
+# eslint-plugin-n (via eslint-plugin-obsidianmd) still asks for 9.x; lint tooling only.
+overrides:
+  "minimatch@>=7.0.0 <11.0.1": "^11.0.1"
