@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Keyhole: private Obsidian attachments on your own S3, WebDAV or server</title>
+	<meta name="description" content="Obsidian vault too large? Keyhole keeps attachments on storage you own (S3-compatible, WebDAV or your own server) and shows them in your notes through private links.">
+	<link rel="canonical" href="{{SITE_URL}}">
+	<link rel="alternate" hreflang="en" href="{{SITE_URL}}">
+	<link rel="alternate" hreflang="de" href="{{SITE_URL}}de/">
+	<link rel="alternate" hreflang="x-default" href="{{SITE_URL}}">
+	<meta name="theme-color" content="#4b2fb3">
+	<link rel="icon" href="data:,">
+	<link rel="stylesheet" href="styles.css">
+
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="Keyhole for Obsidian">
+	<meta property="og:locale" content="en_US">
+	<meta property="og:locale:alternate" content="de_DE">
+	<meta property="og:url" content="{{SITE_URL}}">
+	<meta property="og:title" content="Keyhole: your Obsidian attachments, on storage you own">
+	<meta property="og:description" content="Drop or paste a file into a note as usual. Keyhole uploads it to your own S3-compatible bucket, WebDAV or server and shows it in the note. Your vault stays small, and nothing is ever public.">
+	<meta property="og:image" content="{{SITE_URL}}listing/desktop-1-note.png">
+	<meta property="og:image:width" content="1200">
+	<meta property="og:image:height" content="800">
+	<meta property="og:image:alt" content="An Obsidian note showing a picture, a video, an audio file and a PDF that all load from private storage.">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="Keyhole: your Obsidian attachments, on storage you own">
+	<meta name="twitter:description" content="Keep Obsidian attachments on your own S3, WebDAV or server and see them in your notes through private links.">
+	<meta name="twitter:image" content="{{SITE_URL}}listing/desktop-1-note.png">
+	<meta name="twitter:image:alt" content="An Obsidian note showing a picture, a video, an audio file and a PDF that all load from private storage.">
+
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "SoftwareApplication",
+		"name": "Keyhole",
+		"alternateName": "Keyhole for Obsidian",
+		"description": "Obsidian plugin that keeps attachments on storage you own (S3-compatible, WebDAV or the Keyhole server) and shows them in your notes through private keyhole:// links.",
+		"url": "{{SITE_URL}}",
+		"image": "{{SITE_URL}}listing/desktop-1-note.png",
+		"applicationCategory": "UtilitiesApplication",
+		"applicationSubCategory": "Obsidian plugin",
+		"operatingSystem": "Obsidian (desktop and mobile)",
+		"license": "https://opensource.org/licenses/MIT",
+		"isAccessibleForFree": true,
+		"offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+		"downloadUrl": "https://community.obsidian.md/plugins/keyhole",
+		"codeRepository": "https://github.com/dbraendle/obsidian-keyhole",
+		"author": { "@type": "Person", "name": "Dennis Brändle", "url": "https://github.com/dbraendle" }
+	}
+	</script>
+</head>
+<body>
+	<a class="skip" href="#main">Skip to content</a>
+
+	<header class="hero">
+		<div class="wrap topbar">
+			<a class="brand" href="./">Keyhole <span>for Obsidian</span></a>
+			<nav aria-label="Main">
+				<ul>
+					<li><a href="#features">Features</a></li>
+					<li><a href="#storage">Storage</a></li>
+					<li><a href="#privacy">Privacy</a></li>
+					<li><a href="#limits">Limits</a></li>
+					<li><a href="#support">Support</a></li>
+				</ul>
+			</nav>
+			<a class="lang" href="de/" hreflang="de" lang="de">Deutsch</a>
+		</div>
+
+		<div class="wrap hero-body">
+			<h1>Your Obsidian attachments, on <em>storage you own</em>.</h1>
+			<p class="lead">Drop or paste a file into a note as usual. Keyhole uploads it to your own S3-compatible bucket, WebDAV or server and shows it in the note. Your vault stays small, and nothing is ever public.</p>
+			<div class="cta">
+				<a class="button button-primary" href="https://community.obsidian.md/plugins/keyhole">Install from the Obsidian directory</a>
+				<a class="link-arrow" href="https://github.com/dbraendle/obsidian-keyhole">Source code on GitHub →</a>
+			</div>
+			<ul class="facts" aria-label="At a glance">
+				<li>Free and open source (MIT)</li>
+				<li>Desktop and mobile</li>
+				<li>Beta</li>
+			</ul>
+			<figure class="hero-shot">
+				<img src="listing/desktop-1-note.png" width="1200" height="800" fetchpriority="high"
+					alt="Drop in a file. It goes to your storage. An Obsidian note called “Trip to Lisbon” shows a picture, a video, an audio file and a PDF. A callout says: everything here loads from your private storage.">
+			</figure>
+		</div>
+	</header>
+
+	<main id="main">
+		<section aria-labelledby="problem-title">
+			<div class="wrap problem">
+				<div>
+					<span class="eyebrow">The problem</span>
+					<h2 id="problem-title">Attachments make a vault heavy.</h2>
+					<ul class="problem-list">
+						<li>Photos, scans, voice memos and videos pile up in the vault, and every device has to sync all of them.</li>
+						<li>Image upload plugins write public links: anyone who has the link can open the file.</li>
+						<li>Private files belong on storage you choose, not on someone else’s cloud.</li>
+					</ul>
+				</div>
+				<div class="solution">
+					<span class="eyebrow">How Keyhole solves it</span>
+					<p>Keyhole keeps the files on storage you control: an S3-compatible bucket, WebDAV, or the small Keyhole server. The note holds only a private <code>keyhole://</code> link, never a token or a signed URL, and the file still shows in the note like any attachment.</p>
+					<p>Nothing is publicly readable. Your keys stay in the device’s keychain, so they are never synced or committed to Git. The vault, and Obsidian Sync, stay small.</p>
+				</div>
+			</div>
+		</section>
+
+		<section id="features" class="alt" aria-labelledby="features-title">
+			<div class="wrap">
+				<span class="eyebrow">Features</span>
+				<h2 id="features-title">Private attachments that still feel like attachments.</h2>
+				<p class="section-intro">Pictures, PDFs, audio, video and any other file. In Reading view, Live Preview, hover previews, Canvas and the image viewer.</p>
+
+				<div class="feature">
+					<div class="feature-text">
+						<h3>See where every attachment lives</h3>
+						<p>New files go to your storage automatically. The file overview shows what is still left in the vault from before, with sizes. Each file can be uploaded on its own, or all of them at once with <strong>Move all</strong>.</p>
+					</div>
+					<figure class="shot">
+						<img src="listing/desktop-2-overview.png" width="1200" height="800" loading="lazy" decoding="async"
+							alt="See where every attachment lives. The file overview lists attachments in the vault (7 files, 4.7 MB) and in the storage (4 files, 485 KB), each with an Upload button.">
+					</figure>
+				</div>
+
+				<div class="feature reverse">
+					<div class="feature-text">
+						<h3>Optional end-to-end encryption</h3>
+						<p>Files are encrypted on your device (AES-256-GCM) before upload. Your storage provider sees neither content nor file names. There is no recovery: if you lose the key, the encrypted files are gone.</p>
+					</div>
+					<figure class="shot">
+						<img src="listing/desktop-3-encryption.png" width="1200" height="800" loading="lazy" decoding="async"
+							alt="Optional end-to-end encryption. Keyhole settings with the switch “Encrypt new uploads” turned on, and the options “Show encryption key” and “Encrypt existing files”.">
+					</figure>
+				</div>
+
+				<div class="feature">
+					<div class="feature-text">
+						<h3>Smaller pictures, no location data</h3>
+						<p>Photos are shrunk on the device, never by a service, and you choose what happens to their metadata before anything is uploaded: keep everything, remove the location, or remove everything (the default).</p>
+					</div>
+					<figure class="shot">
+						<img src="listing/desktop-4-pictures.png" width="1200" height="800" loading="lazy" decoding="async"
+							alt="Smaller pictures, no location data. Keyhole settings with “Shrink images before upload” switched on and “Metadata in pictures” set to “Remove everything”.">
+					</figure>
+				</div>
+
+				<div class="feature reverse">
+					<div class="feature-text">
+						<h3>Bring any file back. No lock-in.</h3>
+						<p>Every file can return to the vault as a normal attachment, one by one or all at once. Your storage keeps its copies.</p>
+					</div>
+					<figure class="shot">
+						<img src="listing/desktop-5-bring-back.png" width="1200" height="800" loading="lazy" decoding="async"
+							alt="Bring any file back. No lock-in. The file overview lists four encrypted files in the storage, each with a “Bring back” button that turns it into a normal attachment again.">
+					</figure>
+				</div>
+			</div>
+		</section>
+
+		<section aria-labelledby="mobile-title">
+			<div class="wrap">
+				<span class="eyebrow">On phones and tablets</span>
+				<h2 id="mobile-title">Your attachments on every device, without syncing gigabytes.</h2>
+				<p class="section-intro">Keyhole works on desktop and mobile. It has been tested on macOS and iPhone; see <a href="#limits">the limits</a> for what still needs testing.</p>
+
+				<div class="phones-scroll" role="region" aria-label="Screenshots on a phone" tabindex="0">
+				<ul class="phones">
+					<li>
+						<figure>
+							<img src="listing/mobile-1-note.png" width="900" height="1600" loading="lazy" decoding="async"
+								alt="Your attachments on every device. The note “Trip to Lisbon” on a phone with a picture, a video, an audio file and a PDF that load from private storage.">
+							<figcaption>
+								<h3>Your attachments on every device</h3>
+								<p>Pictures, video, audio and PDFs load from your storage, without syncing gigabytes to your phone.</p>
+							</figcaption>
+						</figure>
+					</li>
+					<li>
+						<figure>
+							<img src="listing/mobile-2-insert.png" width="900" height="1600" loading="lazy" decoding="async"
+								alt="Add a photo, skip the vault. The toolbar above the phone keyboard with the Keyhole upload button next to the paper clip.">
+							<figcaption>
+								<h3>Add a photo, skip the vault</h3>
+								<p>Works like the paper clip next to it, but the file goes straight to your storage.</p>
+							</figcaption>
+						</figure>
+					</li>
+					<li>
+						<figure>
+							<img src="listing/mobile-3-move.png" width="900" height="1600" loading="lazy" decoding="async"
+								alt="Photos already in the vault? A note with two local attachments shows a bar with the button “Move to Keyhole”.">
+							<figcaption>
+								<h3>Photos already in the vault?</h3>
+								<p>One tap moves them to your storage.</p>
+							</figcaption>
+						</figure>
+					</li>
+					<li>
+						<figure>
+							<img src="listing/mobile-4-overview.png" width="900" height="1600" loading="lazy" decoding="async"
+								alt="See where every attachment lives. The file overview on a phone, listing the attachments still in the vault with Upload buttons.">
+							<figcaption>
+								<h3>See where every attachment lives</h3>
+								<p>New files skip the vault automatically. Older ones are listed here.</p>
+							</figcaption>
+						</figure>
+					</li>
+					<li>
+						<figure>
+							<img src="listing/mobile-5-encryption.png" width="900" height="1600" loading="lazy" decoding="async"
+								alt="End-to-end encrypted, if you want. Keyhole settings on a phone with “Encrypt new uploads” switched on.">
+							<figcaption>
+								<h3>End-to-end encrypted, if you want</h3>
+								<p>Your storage provider sees only unreadable data.</p>
+							</figcaption>
+						</figure>
+					</li>
+				</ul>
+				</div>
+				<p class="scroll-hint">Swipe or scroll sideways for more screenshots.</p>
+			</div>
+		</section>
+
+		<section class="alt" aria-labelledby="all-title">
+			<div class="wrap">
+				<span class="eyebrow">What it does</span>
+				<h2 id="all-title">Everything at a glance</h2>
+				<ul class="cards">
+					<li><strong>Private by design</strong><span>Nothing is publicly readable. Notes contain only <code>keyhole://</code> links, never tokens or signed URLs.</span></li>
+					<li><strong>Secrets stay on the device</strong><span>Keys, tokens and passwords live in Obsidian’s keychain, not in your vault, so they are never synced or committed to Git.</span></li>
+					<li><strong>All kinds of files</strong><span>Pictures, PDFs rendered in the note, audio and video (streamed from S3 or the Keyhole server), and any other file as a download card. One switch per kind decides what is uploaded.</span></li>
+					<li><strong>Works where attachments work</strong><span>Reading view, Live Preview, hover previews, Canvas and the image viewer, on desktop and mobile.</span></li>
+					<li><strong>Optional end-to-end encryption</strong><span>Files are encrypted on your device before upload, so the storage provider sees neither content nor file names.</span></li>
+					<li><strong>Smaller pictures, no location data</strong><span>Photos are shrunk on the device, and you choose what happens to their metadata.</span></li>
+					<li><strong>Offline</strong><span>Files you have viewed are kept on the device, up to a size limit you choose.</span></li>
+					<li><strong>No lock-in</strong><span>Every file can come back into the vault as a normal attachment, one by one or all at once.</span></li>
+					<li><strong>Never lose a file</strong><span>If an upload fails (you are offline, say), the file is saved as a normal local attachment instead.</span></li>
+				</ul>
+			</div>
+		</section>
+
+		<section id="storage" aria-labelledby="storage-title">
+			<div class="wrap">
+				<span class="eyebrow">Storage you can use</span>
+				<h2 id="storage-title">Obsidian attachments on your own S3, WebDAV or server</h2>
+				<p class="section-intro">Keyhole speaks open standards, not one provider’s API. Moving to another provider means changing settings, not notes.</p>
+				<div class="table-wrap">
+					<table>
+						<caption class="visually-hidden">Storage that works with Keyhole</caption>
+						<thead>
+							<tr><th scope="col">Storage</th><th scope="col">Examples</th></tr>
+						</thead>
+						<tbody>
+							<tr><th scope="row">S3-compatible</th><td>AWS S3, Cloudflare R2, Backblaze B2, Wasabi, Garage, SeaweedFS, MinIO</td></tr>
+							<tr><th scope="row">Keyhole server</th><td><a href="https://github.com/dbraendle/keyhole-server">keyhole-server</a>: a small server of its own, no dependencies, Docker image</td></tr>
+							<tr><th scope="row">WebDAV</th><td>Nextcloud, Synology, rclone <code>serve webdav</code>, Caddy, nginx</td></tr>
+						</tbody>
+					</table>
+				</div>
+				<p class="note">Keep your bucket <strong>private</strong>. Keyhole never needs public access, and it needs no CORS configuration. You need an account with an S3-compatible provider (often paid beyond a free tier), or your own server.</p>
+			</div>
+		</section>
+
+		<section class="alt" aria-labelledby="setup-title">
+			<div class="wrap">
+				<span class="eyebrow">Set-up</span>
+				<h2 id="setup-title">Ready in three steps</h2>
+				<ol class="steps">
+					<li>
+						<h3>Install Keyhole</h3>
+						<p>In Obsidian, open <em>Settings → Community plugins → Browse</em>, search for Keyhole, install and enable it. Or start from its <a href="https://community.obsidian.md/plugins/keyhole">page in the directory</a>.</p>
+					</li>
+					<li>
+						<h3>Follow the set-up guide</h3>
+						<p>It opens the first time and goes through it step by step: connect your storage and test it, choose what is uploaded, decide about encryption, place the upload button on phones, and move the attachments you already have.</p>
+					</li>
+					<li>
+						<h3>Drop in a file</h3>
+						<p>Drop or paste files into a note as usual. On a second device, a short version of the guide asks only for what never syncs: the secret and, if you use encryption, the key.</p>
+					</li>
+				</ol>
+			</div>
+		</section>
+
+		<section id="privacy" aria-labelledby="privacy-title">
+			<div class="wrap">
+				<span class="eyebrow">Privacy and security</span>
+				<h2 id="privacy-title">Private Obsidian attachments, and exactly what that means</h2>
+				<p class="section-intro">Keyhole connects <strong>only</strong> to the storage you configure, to upload and download your files. It sends no telemetry and contacts no other service.</p>
+				<ul class="privacy-list">
+					<li><strong>Secrets</strong><span>The secret access key, token or password is stored in Obsidian’s keychain on each device. Each one is tied to the server it was saved for: if the storage address changes to another host, Keyhole asks for the secret again instead of sending it there.</span></li>
+					<li><strong>Settings</strong><span>Stored in the plugin’s <code>data.json</code> inside your vault and synced with it if you sync plugin settings. They contain the storage address, bucket, access key ID and WebDAV user name, but no secrets.</span></li>
+					<li><strong>What your storage provider sees</strong><span>The files themselves and their names; the file name is part of the object key. Unless you turn on end-to-end encryption, Keyhole does not encrypt files, so use a provider or server you trust. With encryption, the provider still sees file sizes, upload times and how many files you have.</span></li>
+					<li><strong>Streaming links</strong><span>To stream audio and video, the media player gets a signed link that expires after a few hours. These links exist only while the note is open and are never written to your notes.</span></li>
+					<li><strong>The offline cache</strong><span>Lives in the app’s local storage on each device, outside your vault. Encrypted files stay encrypted there; others are not encrypted by Keyhole. It stays when you remove the plugin, so clear it first.</span></li>
+					<li><strong>Reading your notes</strong><span>Clean-up, restoring and the file overview go through your notes to find <code>keyhole://</code> links. Note contents are never sent anywhere.</span></li>
+					<li><strong>Other plugins</strong><span>Obsidian does not separate plugins from each other: other plugins you install can read the keychain and the files shown in your notes. Only install plugins you trust.</span></li>
+					<li><strong>Verifiable releases</strong><span>Release files carry GitHub artifact attestations, so you can check that <code>main.js</code> and <code>styles.css</code> were built from the repository.</span></li>
+				</ul>
+				<p class="note">The complete list, including the clipboard and picture metadata, is in the <a href="https://github.com/dbraendle/obsidian-keyhole#privacy-and-network-use">README’s privacy section</a>. To report a vulnerability, see the <a href="https://github.com/dbraendle/obsidian-keyhole/blob/main/SECURITY.md">security policy</a>.</p>
+			</div>
+		</section>
+
+		<section id="limits" class="alt" aria-labelledby="limits-title">
+			<div class="wrap">
+				<span class="eyebrow">Honest limits</span>
+				<h2 id="limits-title">What Keyhole cannot do (yet)</h2>
+				<div class="status">
+					<p><strong>Status: beta.</strong> Tested on macOS and iPhone. What was added since 0.5 (encryption, large uploads, the file overview, the set-up guide) has not been tested on a phone yet, and Android still needs testing.</p>
+				</div>
+				<ul class="plain-list">
+					<li>Without Keyhole installed, the embeds show as broken images. The links contain the file name, so nothing is lost, and <em>Bring all Keyhole files back</em> restores normal attachments at any time.</li>
+					<li>Obsidian Publish cannot show Keyhole files.</li>
+					<li>Plain WebDAV downloads media completely before playback. Use S3 or the Keyhole server for large videos.</li>
+					<li>Large files: on S3-compatible storage, files over 16 MB are uploaded in parts of 8 MB, so they do not have to fit into memory. The Keyhole server and WebDAV take a file in one request; on phones, very large files can run into memory limits there. The default maximum is 100 MB.</li>
+					<li>Encrypted audio and video cannot be streamed; they are downloaded completely before they play. If you lose the encryption key, the encrypted files are gone.</li>
+				</ul>
+			</div>
+		</section>
+
+		<section id="support" class="support" aria-labelledby="support-title">
+			<div class="wrap">
+				<h2 id="support-title">Support Keyhole</h2>
+				<p>Keyhole is free and open source. If it keeps your vault small and your files private, you can support its development.</p>
+				<ul class="support-links">
+					<li><a class="button button-primary" href="https://github.com/sponsors/dbraendle">GitHub Sponsors</a></li>
+					<li><a class="button button-light" href="https://ko-fi.com/dbraendle">Ko-fi</a></li>
+					<li><a class="button button-light" href="https://buymeacoffee.com/dbraendle">Buy Me a Coffee</a></li>
+				</ul>
+			</div>
+		</section>
+	</main>
+
+	<footer>
+		<div class="wrap">
+			<ul>
+				<li><a href="https://github.com/dbraendle/obsidian-keyhole">Repository</a></li>
+				<li><a href="https://github.com/dbraendle/obsidian-keyhole/blob/main/CHANGELOG.md">Changelog</a></li>
+				<li><a href="https://github.com/dbraendle/keyhole-server">Keyhole server</a></li>
+				<li><a href="https://github.com/dbraendle/obsidian-keyhole/blob/main/LICENSE">Licence (MIT)</a></li>
+				<li><a href="https://dbraendle.com/">Imprint</a></li>
+				<li><a href="privacy.html">Privacy notice</a></li>
+				<li><a href="de/" hreflang="de" lang="de">Deutsch</a></li>
+			</ul>
+			<p>Keyhole is an independent plugin by Dennis Brändle and is not affiliated with Obsidian. This page sets no cookies and loads nothing from third parties.</p>
+		</div>
+	</footer>
+</body>
+</html>

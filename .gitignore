@@ -4,3 +4,6 @@ main.js
 data.json
 .DS_Store
 coverage/
+
+# Assembled website (scripts/assemble-site.sh)
+_site/
