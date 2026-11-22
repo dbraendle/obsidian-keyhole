@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1
+
+- Adds a funding link (GitHub Sponsors) to the plugin's entry in Obsidian. No functional change.
+
 ## 0.11.0
 
 - One switch per kind of file instead of the choice "all files / media only / images only": pictures, audio, video, PDFs and other files can be turned on and off separately, for example to upload PDFs only. An existing choice is carried over.
