@@ -1,10 +1,11 @@
 {
 	"id": "keyhole",
 	"name": "Keyhole",
-	"version": "0.11.0",
+	"version": "0.11.1",
 	"minAppVersion": "1.13.2",
 	"description": "Keep attachments on your own private storage (S3-compatible or your own server) and view them in your notes. Credentials stay on the device, never in your notes.",
 	"author": "Dennis Brändle",
 	"authorUrl": "https://github.com/dbraendle",
+	"fundingUrl": "https://github.com/sponsors/dbraendle",
 	"isDesktopOnly": false
 }
