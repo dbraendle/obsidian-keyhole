@@ -6,9 +6,10 @@
 # Usage: scripts/assemble-site.sh [output-dir]   (default: _site)
 set -euo pipefail
 
-# The site's public address, with a trailing slash. The one place to change it
-# when a custom domain goes in front.
-SITE_URL="${SITE_URL:-https://dbraendle.github.io/obsidian-keyhole/}"
+# The site's public address, with a trailing slash. The custom domain itself is
+# set in the repository's Pages settings (no CNAME file: Pages ignores it when
+# deploying from a workflow); the old github.io address redirects to it.
+SITE_URL="${SITE_URL:-https://keyhole.dbraendle.com/}"
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 out="${1:-_site}"
