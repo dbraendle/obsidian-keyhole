@@ -4,7 +4,7 @@ Keep your Obsidian attachments on storage that belongs to you. Drop or paste a f
 
 ![Drop in a file. It goes to your storage: a note showing a picture, a video, an audio file and a PDF that all load from private storage](docs/listing/desktop-1-note.png)
 
-**[Install from the Obsidian community directory](https://community.obsidian.md/plugins/keyhole)** · [Set-up](#setup) · [Privacy](#privacy-and-network-use) · [Limitations](#limitations)
+**[Install from the Obsidian community directory](https://community.obsidian.md/plugins/keyhole)** · [Website](https://keyhole.dbraendle.com/) · [Set-up](#setup) · [Privacy](#privacy-and-network-use) · [Limitations](#limitations)
 
 ## What it does
 
